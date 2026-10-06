@@ -438,8 +438,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="mt-3 space-y-1.5 min-h-[120px]">
               {todayIncomes.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center py-8 text-center text-xs text-slate-400">
-                  <span>오늘 들어온 수입이 아직 없습니다.</span>
-                  <span className="text-[11px] text-slate-300 mt-1">상담/매출이 생기면 [+ 수입]을 눌러보세요!</span>
+                  <span>오늘 수입 내역이 없습니다.</span>
                 </div>
               ) : (
                 todayIncomes.map(item => (
@@ -510,8 +509,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="mt-3 space-y-1.5 min-h-[120px]">
               {todayExpenses.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center py-8 text-center text-xs text-slate-400">
-                  <span>오늘 사용한 지출이 아직 없습니다.</span>
-                  <span className="text-[11px] text-slate-300 mt-1">돈을 쓰셨다면 [- 지출]을 눌러 기록하세요!</span>
+                  <span>오늘 지출 내역이 없습니다.</span>
                 </div>
               ) : (
                 todayExpenses.map(item => {
@@ -568,24 +566,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* 5. 매달 나갈 고정비 체크리스트 (하단, 날짜별 위) */}
       <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div>
-            <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-1.5">
-              <span>📌 매달 나갈 고정비</span>
-              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
+          <div className="min-w-0">
+            <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-1.5 whitespace-nowrap">
+              <span>📌 매달 고정비</span>
+              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
                 {fixedExpenses.length}개
               </span>
             </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              체크하면 "냈다!" 처리되며 전재산에서만 깎입니다.
+            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+              체크 시 납부 완료 처리됩니다.
             </p>
           </div>
           <button
             onClick={() => setIsAddFixedOpen(true)}
-            className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200/80 transition"
+            className="shrink-0 whitespace-nowrap flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200/80 transition"
           >
             <Plus size={13} />
-            <span>고정비 추가</span>
+            <span>추가</span>
           </button>
         </div>
 
@@ -593,7 +591,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="mt-3.5 space-y-2">
           {fixedExpenses.length === 0 ? (
             <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
-              등록된 고정비가 없습니다. <strong>[+ 고정비 추가]</strong>를 눌러 월세, 통신비 등을 등록해보세요!
+              등록된 고정비가 없습니다.
             </div>
           ) : (
             <>
@@ -702,22 +700,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs">
         <div 
           onClick={() => setIsPastHistoryOpen(!isPastHistoryOpen)}
-          className="flex items-center justify-between cursor-pointer select-none"
+          className="flex items-center justify-between cursor-pointer select-none gap-2"
         >
-          <div className="flex items-center gap-2">
-            <Calendar size={17} className="text-slate-500" />
-            <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-1.5">
-              <span>{isCurrentMonth ? '📜 과거 날짜별 내역' : `📜 ${sMonth}월 날짜별 내역`}</span>
-              <span className="text-[11px] text-slate-400 font-normal">
-                ({Object.keys(groupedPastByDate).length}개 날짜)
+          <div className="flex items-center gap-2 min-w-0">
+            <Calendar size={17} className="text-slate-500 shrink-0" />
+            <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-1.5 whitespace-nowrap">
+              <span>{isCurrentMonth ? '날짜별 내역' : `${sMonth}월 내역`}</span>
+              <span className="text-[11px] text-slate-400 font-normal shrink-0">
+                ({Object.keys(groupedPastByDate).length}일)
               </span>
             </h3>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
             <button
               type="button"
-              className="text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-xl transition flex items-center gap-1"
+              className="shrink-0 whitespace-nowrap text-xs font-semibold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-xl transition flex items-center gap-1"
             >
               <span>{isPastHistoryOpen ? '접기' : '펼치기'}</span>
               {isPastHistoryOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -729,10 +727,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   e.stopPropagation();
                   onNavigateHistory();
                 }}
-                className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 ml-1"
+                className="shrink-0 whitespace-nowrap text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5 ml-0.5"
                 title="전체 내역 탭으로 이동"
               >
-                <span>전체 보기</span>
+                <span>전체보기</span>
                 <ChevronRight size={14} />
               </button>
             )}
