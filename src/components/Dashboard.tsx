@@ -413,30 +413,46 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* 4. ⭐⭐⭐ [가장 중요] 오늘의 수입 & 오늘의 지출 내역 쭉 보이기 ⭐⭐⭐ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 4-1. 오늘의 수입 내역 (사주, 타로 등) */}
-        <section className="bg-white rounded-3xl p-5 border border-emerald-200/80 shadow-xs flex flex-col justify-between">
+        <section className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <span className="text-lg">💰</span>
-                <div>
-                  <h3 className="text-sm md:text-base font-bold text-slate-900">
+                <span className="text-xl">💰</span>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm md:text-base font-extrabold text-slate-900">
                     오늘의 수입
                   </h3>
-                  <div className="text-[11px] text-emerald-600 font-semibold">
-                    총 {todayIncomes.length}건 · +{todayRevenue.toLocaleString()}원
-                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                    {todayIncomes.length}건
+                  </span>
                 </div>
               </div>
               <button
                 onClick={onOpenIncome}
-                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-xl transition flex items-center gap-1"
+                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl transition flex items-center gap-1 active:scale-95"
               >
                 <Plus size={13} />
                 <span>추가</span>
               </button>
             </div>
 
-            {/* 수입 항목 리스트 (사주, 타로 등 쭉 나열) */}
+            {/* ⭐ 오늘 총수입 강조 하이라이트 박스 ⭐ */}
+            <div className="mt-3 p-3.5 bg-gradient-to-br from-emerald-50/90 via-teal-50/40 to-white rounded-2xl border border-emerald-200/80 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-bold text-emerald-900">오늘 총수입</span>
+                </div>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-2xl md:text-3xl font-black text-emerald-600 tabular-nums tracking-tight">
+                    +{todayRevenue.toLocaleString()}
+                  </span>
+                  <span className="text-sm font-extrabold text-emerald-700">원</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 수입 항목 리스트 (지출과 완벽히 동일한 형태 및 뉴트럴 배경) */}
             <div className="mt-3 space-y-1.5 min-h-[120px]">
               {todayIncomes.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center py-8 text-center text-xs text-slate-400">
@@ -446,13 +462,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 todayIncomes.map(item => (
                   <div
                     key={item.id}
-                    className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-emerald-50/50 hover:bg-emerald-50 border border-emerald-100/70 transition group"
+                    className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition group"
                   >
                     <div className="min-w-0 flex items-center gap-2">
-                      <span className="text-sm">✨</span>
-                      <span className="text-xs md:text-sm font-bold text-slate-800 truncate">
-                        {item.memo || '수입'}
-                      </span>
+                      <span className="text-sm shrink-0">💰</span>
+                      <div className="min-w-0">
+                        <span className="text-xs md:text-sm font-bold text-slate-800 truncate block">
+                          {item.memo || '수입'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          수입
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
@@ -488,23 +509,39 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
-                <span className="text-lg">🛒</span>
-                <div>
+                <span className="text-xl">🛒</span>
+                <div className="flex items-center gap-2">
                   <h3 className="text-sm md:text-base font-bold text-slate-900">
                     오늘의 지출
                   </h3>
-                  <div className="text-[11px] text-rose-500 font-semibold">
-                    총 {todayExpenses.length}건 · -{todaySpent.toLocaleString()}원
-                  </div>
+                  <span className="text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200/60">
+                    {todayExpenses.length}건
+                  </span>
                 </div>
               </div>
               <button
                 onClick={() => onOpenExpense('food')}
-                className="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-xl transition flex items-center gap-1"
+                className="text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-xl transition flex items-center gap-1 active:scale-95"
               >
                 <Plus size={13} />
                 <span>추가</span>
               </button>
+            </div>
+
+            {/* ⭐ 오늘 총지출 강조 하이라이트 박스 ⭐ */}
+            <div className="mt-3 p-3.5 bg-gradient-to-br from-rose-50/90 via-orange-50/30 to-white rounded-2xl border border-rose-200/80 shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span className="text-xs font-bold text-rose-900">오늘 총지출</span>
+                </div>
+                <div className="flex items-baseline gap-0.5">
+                  <span className="text-2xl md:text-3xl font-black text-rose-600 tabular-nums tracking-tight">
+                    {todaySpent > 0 ? `-${todaySpent.toLocaleString()}` : '0'}
+                  </span>
+                  <span className="text-sm font-extrabold text-rose-700">원</span>
+                </div>
+              </div>
             </div>
 
             {/* 지출 항목 리스트 (식비, 뭐시기 등 쭉 나열) */}
@@ -933,13 +970,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs tabular-nums">
-                    <span className="text-slate-600 font-medium">
-                      수입 <strong className="text-emerald-600 font-bold">+{selectedDateIncome.toLocaleString()}원</strong>
+                  <div className="flex items-center gap-1.5 text-xs tabular-nums">
+                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/60 font-semibold">
+                      총수입 <strong className="text-emerald-700 font-extrabold">+{selectedDateIncome.toLocaleString()}원</strong>
                     </span>
-                    <span className="text-slate-300">|</span>
-                    <span className="text-slate-600 font-medium">
-                      지출 <strong className="text-slate-900 font-bold">{selectedDateExpense > 0 ? `-${selectedDateExpense.toLocaleString()}원` : '0원'}</strong>
+                    <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200/60 font-semibold">
+                      총지출 <strong className="text-rose-700 font-extrabold">{selectedDateExpense > 0 ? `-${selectedDateExpense.toLocaleString()}원` : '0원'}</strong>
                     </span>
                   </div>
                 </div>
