@@ -149,10 +149,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
       ? 'from-amber-400 to-orange-500' 
       : 'from-emerald-400 to-teal-500';
 
-  // 5. 과거 날짜별 내역 (선택된 달의 지난 날짜 기록)
+  // 이번 달 총 지출 (실제 지출 기준)
+  const targetMonthTotalExpense = targetMonthExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+  // 이번 달 카테고리별 지출 집계
+  const monthCategoryTotals: Record<string, number> = {};
+  targetMonthExpenses.forEach(e => {
+    monthCategoryTotals[e.category] = (monthCategoryTotals[e.category] || 0) + e.amount;
+  });
+
+  const categoryOrder: (keyof typeof CATEGORIES)[] = ['business', 'food', 'shopping', 'entertainment', 'fixed', 'other'];
+  const monthCategoryList = categoryOrder.map(catKey => {
+    const catInfo = CATEGORIES[catKey];
+    const amount = monthCategoryTotals[catKey] || 0;
+    const percent = targetMonthTotalExpense > 0 ? Math.round((amount / targetMonthTotalExpense) * 100) : 0;
+    return {
+      key: catKey,
+      label: catKey === 'food' ? '식비' : catInfo?.label || catKey,
+      emoji: catInfo?.emoji || '🏷️',
+      amount,
+      percent,
+    };
+  });
+
+  // 5. 날짜별 내역 (오늘 포함 선택된 달의 기록)
   const pastHistory = [
-    ...expenses.filter(e => e.date !== todayStr && (isCurrentMonth ? true : e.date.startsWith(selectedMonth))).map(e => ({ ...e, isExpense: true })),
-    ...incomes.filter(i => i.date !== todayStr && (isCurrentMonth ? true : i.date.startsWith(selectedMonth))).map(i => ({ ...i, isExpense: false })),
+    ...expenses.filter(e => (isCurrentMonth ? true : e.date.startsWith(selectedMonth))).map(e => ({ ...e, isExpense: true })),
+    ...incomes.filter(i => (isCurrentMonth ? true : i.date.startsWith(selectedMonth))).map(i => ({ ...i, isExpense: false })),
   ].sort((a, b) => {
     if (a.date !== b.date) return b.date.localeCompare(a.date);
     return (b.created_at || '').localeCompare(a.created_at || '');
@@ -166,18 +189,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     groupedPastByDate[item.date].push(item);
   });
 
-  // 어제 날짜 구하기
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = getLocalDateString(yesterday);
-
-  // 과거 내역에서 기록된 날짜 목록 (최신순)
-  const pastDates = Object.keys(groupedPastByDate);
-  
-  // 선택된 특정 과거 날짜 상태 (기본: 최근 기록 날짜 또는 어제)
-  const [selectedPastDate, setSelectedPastDate] = useState<string>(
-    pastDates.length > 0 ? pastDates[0] : yesterdayStr
-  );
+  // 선택된 특정 날짜 상태 (기본값: 오늘 현재 날짜)
+  const [selectedPastDate, setSelectedPastDate] = useState<string>(todayStr);
   // 전체 날짜 한 번에 보기 vs 특정 날짜 넘겨보기 모드
   const [viewAllPastDates, setViewAllPastDates] = useState(false);
 
@@ -200,10 +213,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  // 선택된 특정 과거 날짜의 내역 계산
+  // 선택된 특정 날짜의 내역 계산 및 수입/지출 분리
   const selectedDateItems = pastHistory.filter(it => it.date === selectedPastDate);
-  const selectedDateIncome = selectedDateItems.filter(it => !it.isExpense).reduce((s, it) => s + it.amount, 0);
-  const selectedDateExpense = selectedDateItems.filter(it => it.isExpense && !(it as any).is_pending).reduce((s, it) => s + it.amount, 0);
+  const selectedDateIncomes = selectedDateItems.filter(it => !it.isExpense);
+  const selectedDateExpenses = selectedDateItems.filter(it => it.isExpense);
+  const selectedDateIncome = selectedDateIncomes.reduce((s, it) => s + it.amount, 0);
+  const selectedDateExpense = selectedDateExpenses.filter(it => !(it as any).is_pending).reduce((s, it) => s + it.amount, 0);
+
+  // 날짜별 내역 필터: 전체('all') | 수입만('income') | 지출만('expense')
+  const [selectedDateFilter, setSelectedDateFilter] = useState<'all' | 'income' | 'expense'>('all');
 
   // 선택된 달 번 돈 (수입 합계)
   const targetMonthIncomes = incomes.filter(i => i.date.startsWith(selectedMonth));
@@ -339,85 +357,37 @@ export const Dashboard: React.FC<DashboardProps> = ({
         )}
       </section>
 
-      {/* 2. 요약 카드: 번 돈 & 쓸 용돈 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-        {/* 번 돈 */}
-        <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-2">
-              <h3 className="text-sm md:text-base font-extrabold text-slate-900">
-                {isCurrentMonth ? '이번달 번 돈' : `${sMonth}월 번 돈`}
-              </h3>
-              <span className="text-[11px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">
-                {isCurrentMonth ? `${now.getMonth() + 1}월 누적` : `${sMonth}월 전체`}
-              </span>
-            </div>
-
-            <div className="text-xs text-slate-500 font-medium mt-1">
-              총 매출 (수입 합계)
-            </div>
-
-            <div className="flex items-baseline gap-1 my-1">
-              <span className="text-2xl md:text-3xl font-black text-emerald-600 tabular-nums">
-                +{monthRevenue.toLocaleString()}
-              </span>
-              <span className="text-sm font-medium text-slate-400">원</span>
-            </div>
+      {/* 2. 요약 카드: 이번달 번 돈 */}
+      <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <div>
+          <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-2">
+            <h3 className="text-sm md:text-base font-extrabold text-slate-900">
+              {isCurrentMonth ? '이번달 번 돈' : `${sMonth}월 번 돈`}
+            </h3>
+            <span className="text-[11px] bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full font-bold">
+              {isCurrentMonth ? `${now.getMonth() + 1}월 누적` : `${sMonth}월 전체`}
+            </span>
           </div>
 
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <div className="flex items-center gap-1">
-              <ArrowUpRight size={13} className="text-emerald-600" />
-              <span>{isCurrentMonth ? '오늘 번 돈' : `${sMonth}월 수입 건수`}: <strong className="text-slate-800">{isCurrentMonth ? `+${todayRevenue.toLocaleString()}원` : `${targetMonthIncomes.length}건`}</strong></span>
-            </div>
-            <div className="text-[11px] text-slate-400">
-              총 {targetMonthIncomes.length}건
-            </div>
+          <div className="text-xs text-slate-500 font-medium mt-1">
+            총 매출 (수입 합계)
+          </div>
+
+          <div className="flex items-baseline gap-1 my-1">
+            <span className="text-2xl md:text-3xl font-black text-emerald-600 tabular-nums">
+              +{monthRevenue.toLocaleString()}
+            </span>
+            <span className="text-sm font-medium text-slate-400">원</span>
           </div>
         </div>
 
-        {/* 쓸 용돈 카드 (남은 용돈 중심 & 에너지바) */}
-        <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm md:text-base font-extrabold text-slate-900">
-                {isCurrentMonth ? '이번달 쓸 용돈' : `${sMonth}월 쓴 용돈`}
-              </h3>
-              <span className="text-[11px] bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full font-bold">
-                한도 {monthlyAllowanceLimit.toLocaleString()}원
-              </span>
-            </div>
-
-            <div className="text-xs text-slate-500 font-medium mt-1">
-              {isCurrentMonth ? '남은 용돈 (고정·사업비 제외)' : `${sMonth}월 잔여 예산`}
-            </div>
-
-            <div className="flex items-baseline gap-1 my-1">
-              <span className={`text-2xl md:text-3xl font-black tabular-nums ${remainingAllowance >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                {remainingAllowance >= 0 ? remainingAllowance.toLocaleString() : `-${Math.abs(remainingAllowance).toLocaleString()}`}
-              </span>
-              <span className="text-sm font-medium text-slate-400">원</span>
-            </div>
-
-            {/* 에너지바 (게이지 차는 그래픽) */}
-            <div className="mt-3.5 space-y-1.5">
-              <div className="flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 font-medium">사용률</span>
-                <span className="font-bold tabular-nums text-slate-700">
-                  {rawPercent}% 사용 ({monthUsedAllowance.toLocaleString()}원 씀)
-                </span>
-              </div>
-              <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
-                <div
-                  className={`h-full rounded-full bg-gradient-to-r ${energyBarColor} transition-all duration-500 shadow-xs`}
-                  style={{ width: `${energyPercent}%` }}
-                />
-              </div>
-            </div>
+        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <div className="flex items-center gap-1">
+            <ArrowUpRight size={13} className="text-emerald-600" />
+            <span>{isCurrentMonth ? '오늘 번 돈' : `${sMonth}월 수입 건수`}: <strong className="text-slate-800">{isCurrentMonth ? `+${todayRevenue.toLocaleString()}원` : `${targetMonthIncomes.length}건`}</strong></span>
           </div>
-
-          <div className="mt-3 pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>고정비와 사업비는 제외된 순수 생활비입니다.</span>
+          <div className="text-[11px] text-slate-400">
+            총 {targetMonthIncomes.length}건
           </div>
         </div>
       </div>
@@ -596,6 +566,117 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </section>
       </div>
 
+      {/* 4-3. 이번달 지출 분류 (사업비, 식비 등) & 총지출 카드 */}
+      <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📊</span>
+            <div>
+              <h3 className="text-sm md:text-base font-bold text-slate-900">
+                {isCurrentMonth ? '이번달' : `${sMonth}월`} 지출 분류
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                사업비, 식비 등 항목별 지출 현황입니다.
+              </p>
+            </div>
+          </div>
+          {onNavigateHistory && (
+            <button
+              onClick={onNavigateHistory}
+              className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5"
+            >
+              <span>상세내역</span>
+              <ChevronRight size={13} />
+            </button>
+          )}
+        </div>
+
+        {/* 카테고리별 그리드 카드 (사업비, 식비, 물건 등) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+          {monthCategoryList.map(({ key, label, emoji, amount, percent }) => {
+            const hasSpent = amount > 0;
+            return (
+              <div
+                key={key}
+                onClick={() => onOpenExpense(key as any)}
+                className={`p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
+                  hasSpent
+                    ? 'bg-slate-50/90 border-slate-200/80'
+                    : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
+                }`}
+                title="클릭 시 이 카테고리로 지출 입력"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">{emoji}</span>
+                    <span className="text-xs font-bold text-slate-700">{label}</span>
+                  </div>
+                  {hasSpent && (
+                    <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
+                      {percent}%
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 text-right">
+                  <span
+                    className={`text-xs sm:text-sm font-black tabular-nums ${
+                      hasSpent ? 'text-slate-900' : 'text-slate-300'
+                    }`}
+                  >
+                    {amount.toLocaleString()}원
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 하단 심플 요약: 총지출 & 남은 생활비 + 슬림 게이지바 */}
+        <div className="pt-3.5 border-t border-slate-100 space-y-3">
+          <div className="flex items-center justify-between">
+            {/* 좌측: 생활비 지출 (사업비·고정비 제외) */}
+            <div>
+              <span className="text-[11px] font-semibold text-slate-400 block">
+                {isCurrentMonth ? '이번달' : `${sMonth}월`} 생활비 지출
+              </span>
+              <div className="flex items-baseline gap-0.5 mt-0.5">
+                <span className="text-xl sm:text-2xl font-black tabular-nums text-rose-500">
+                  {monthUsedAllowance > 0 ? `-${monthUsedAllowance.toLocaleString()}` : '0'}
+                </span>
+                <span className="text-xs font-bold text-slate-400">원</span>
+              </div>
+            </div>
+
+            {/* 우측: 남은 생활 용돈 */}
+            <div className="text-right">
+              <span className="text-[11px] font-semibold text-slate-400 block">
+                남은 생활비 <span className="text-[10px] font-normal text-slate-400">(한도 100만)</span>
+              </span>
+              <div className="flex items-baseline justify-end gap-0.5 mt-0.5">
+                <span className={`text-xl sm:text-2xl font-black tabular-nums ${remainingAllowance >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                  {remainingAllowance >= 0 ? remainingAllowance.toLocaleString() : `-${Math.abs(remainingAllowance).toLocaleString()}`}
+                </span>
+                <span className="text-xs font-bold text-slate-400">원</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 깔끔한 1줄 게이지바 */}
+          <div className="space-y-1">
+            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden p-0.5 border border-slate-200/50">
+              <div
+                className={`h-full rounded-full bg-gradient-to-r ${energyBarColor} transition-all duration-500`}
+                style={{ width: `${energyPercent}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-400">
+              <span>생활비 {rawPercent}% 사용 ({monthUsedAllowance.toLocaleString()}원)</span>
+              <span>{remainingAllowance.toLocaleString()}원 남음</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 5. 매달 나갈 고정비 체크리스트 (하단, 날짜별 위) */}
       <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
@@ -652,12 +733,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span className="text-xs md:text-sm font-black text-slate-900 tabular-nums">
                       {item.amount.toLocaleString()}원
                     </span>
-                    <button
-                      onClick={() => onToggleFixedPaid(item.id, true)}
-                      className="text-[11px] font-bold text-emerald-700 bg-emerald-100/70 hover:bg-emerald-200/70 px-2.5 py-1 rounded-lg transition"
-                    >
-                      냈다
-                    </button>
                     {onDeleteFixedExpense && (
                       <button
                         type="button"
@@ -832,13 +907,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
                 }`}
               >
-                {viewAllPastDates ? '선택한 날짜만 보기' : '모든 과거날짜 펼쳐보기'}
+                {viewAllPastDates ? '선택한 날짜만 보기' : '모든 날짜 펼쳐보기'}
               </button>
             </div>
 
             {/* 1) 특정 날짜 넘겨보기 모드 (!viewAllPastDates) */}
             {!viewAllPastDates ? (
-              <div className="space-y-2">
+              <div className="space-y-3">
+                {/* 상단 날짜 헤더 & 총액 */}
                 <div className="flex flex-wrap items-center justify-between gap-1 text-xs px-1 pb-1 border-b border-slate-100">
                   <div className="flex items-center gap-1.5">
                     <span className="font-extrabold text-slate-900 text-sm md:text-base">
@@ -851,14 +927,55 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
                   <div className="flex items-center gap-2 text-xs tabular-nums">
                     <span className="text-slate-600 font-medium">
-                      총수입 <strong className="text-emerald-600 font-bold">+{selectedDateIncome.toLocaleString()}원</strong>
+                      수입 <strong className="text-emerald-600 font-bold">+{selectedDateIncome.toLocaleString()}원</strong>
                     </span>
                     <span className="text-slate-300">|</span>
                     <span className="text-slate-600 font-medium">
-                      총지출 <strong className="text-slate-900 font-bold">{selectedDateExpense > 0 ? `-${selectedDateExpense.toLocaleString()}원` : '0원'}</strong>
+                      지출 <strong className="text-slate-900 font-bold">{selectedDateExpense > 0 ? `-${selectedDateExpense.toLocaleString()}원` : '0원'}</strong>
                     </span>
                   </div>
                 </div>
+
+                {/* 가시성 극대화 원터치 필터 칩 (전체 / 💰 수입 / 🛒 지출) */}
+                {selectedDateItems.length > 0 && (
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDateFilter('all')}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition ${
+                        selectedDateFilter === 'all'
+                          ? 'bg-slate-900 text-white shadow-2xs'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      전체 ({selectedDateItems.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDateFilter('income')}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                        selectedDateFilter === 'income'
+                          ? 'bg-emerald-600 text-white shadow-2xs'
+                          : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50'
+                      }`}
+                    >
+                      <span>💰 수입</span>
+                      <span>({selectedDateIncomes.length})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDateFilter('expense')}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
+                        selectedDateFilter === 'expense'
+                          ? 'bg-rose-600 text-white shadow-2xs'
+                          : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-50'
+                      }`}
+                    >
+                      <span>🛒 지출</span>
+                      <span>({selectedDateExpenses.length})</span>
+                    </button>
+                  </div>
+                )}
 
                 {selectedDateItems.length === 0 ? (
                   <div className="text-center py-8 text-xs text-slate-400 bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
@@ -866,60 +983,134 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <span>{selectedPastDate} 에는 기록된 내역이 없습니다.</span>
                   </div>
                 ) : (
-                  <div className="space-y-1 pt-0.5">
-                    {selectedDateItems.map(item => {
-                      const catInfo = item.isExpense && (item as any).category 
-                        ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES] 
-                        : null;
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50/70 hover:bg-slate-100/80 border border-slate-100 transition"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="text-sm shrink-0">
-                              {item.isExpense ? (catInfo?.emoji || '🏷️') : '💰'}
+                  <div className="space-y-3.5 pt-0.5">
+                    {/* 1. 💰 수입 묶음 영역 (수입이 있고 필터에 해당할 때) */}
+                    {(selectedDateFilter === 'all' || selectedDateFilter === 'income') && selectedDateIncomes.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-bold text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 px-3 py-1.5 rounded-xl">
+                          <span className="flex items-center gap-1.5">
+                            <span>💰 번 돈</span>
+                            <span className="text-[10px] font-semibold text-emerald-600 bg-white px-1.5 py-0.5 rounded-full border border-emerald-200/60">
+                              {selectedDateIncomes.length}건
                             </span>
-                            <div className="min-w-0">
-                              <div className="text-xs font-semibold text-slate-800 truncate">
-                                {item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입')}
+                          </span>
+                          <span className="tabular-nums font-black text-emerald-600">
+                            +{selectedDateIncome.toLocaleString()}원
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {selectedDateIncomes.map(item => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-emerald-50/30 hover:bg-emerald-50/60 border border-emerald-100 transition shadow-2xs"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm shrink-0 font-bold">
+                                  💰
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-bold text-slate-800 truncate">
+                                    {item.memo || '수입'}
+                                  </div>
+                                  <div className="text-[10px] text-emerald-600 font-medium">
+                                    수입
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-[10px] text-slate-400">
-                                {item.isExpense ? (catInfo?.label || '기타') : '수입'}
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-xs md:text-sm font-black tabular-nums text-emerald-600">
+                                  +{item.amount.toLocaleString()}원
+                                </span>
+                                <button
+                                  onClick={() => setSelectedHistoryItem(item)}
+                                  className="text-slate-300 hover:text-slate-600 p-1 rounded transition"
+                                  title="수정"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                {onDeleteItem && (
+                                  <button
+                                    onClick={() => onDeleteItem(item.id, false)}
+                                    className="text-slate-300 hover:text-rose-500 p-1 rounded transition"
+                                    title="삭제"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
                               </div>
                             </div>
-                          </div>
-
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span
-                              className={`text-xs md:text-sm font-bold tabular-nums ${
-                                item.isExpense ? 'text-slate-800' : 'text-emerald-600'
-                              }`}
-                            >
-                              {item.isExpense ? '-' : '+'}
-                              {item.amount.toLocaleString()}원
-                            </span>
-                            <button
-                              onClick={() => setSelectedHistoryItem(item)}
-                              className="text-[11px] text-slate-400 hover:text-slate-600 px-1 py-0.5 rounded transition"
-                              title="수정"
-                            >
-                              <Edit2 size={12} />
-                            </button>
-                            {onDeleteItem && (
-                              <button
-                                onClick={() => onDeleteItem(item.id, item.isExpense)}
-                                className="text-[11px] text-slate-300 hover:text-rose-500 px-1 py-0.5 rounded transition"
-                                title="삭제"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
+                          ))}
                         </div>
-                      );
-                    })}
+                      </div>
+                    )}
+
+                    {/* 2. 🛒 지출 묶음 영역 (지출이 있고 필터에 해당할 때) */}
+                    {(selectedDateFilter === 'all' || selectedDateFilter === 'expense') && selectedDateExpenses.length > 0 && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-100/80 border border-slate-200/60 px-3 py-1.5 rounded-xl">
+                          <span className="flex items-center gap-1.5">
+                            <span>🛒 쓴 돈</span>
+                            <span className="text-[10px] font-semibold text-slate-500 bg-white px-1.5 py-0.5 rounded-full border border-slate-200/60">
+                              {selectedDateExpenses.length}건
+                            </span>
+                          </span>
+                          <span className="tabular-nums font-black text-rose-500">
+                            -{selectedDateExpense.toLocaleString()}원
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {selectedDateExpenses.map(item => {
+                            const catInfo = (item as any).category
+                              ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES]
+                              : null;
+
+                            return (
+                              <div
+                                key={item.id}
+                                className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200/80 transition shadow-2xs"
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm shrink-0">
+                                    {catInfo?.emoji || '🏷️'}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <div className="text-xs font-bold text-slate-800 truncate">
+                                      {item.memo || catInfo?.label || '지출'}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 font-medium">
+                                      {catInfo?.label || '기타'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <span className="text-xs md:text-sm font-black tabular-nums text-slate-900">
+                                    -{item.amount.toLocaleString()}원
+                                  </span>
+                                  <button
+                                    onClick={() => setSelectedHistoryItem(item)}
+                                    className="text-slate-300 hover:text-slate-600 p-1 rounded transition"
+                                    title="수정"
+                                  >
+                                    <Edit2 size={12} />
+                                  </button>
+                                  {onDeleteItem && (
+                                    <button
+                                      onClick={() => onDeleteItem(item.id, true)}
+                                      className="text-slate-300 hover:text-rose-500 p-1 rounded transition"
+                                      title="삭제"
+                                    >
+                                      <Trash2 size={12} />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -927,7 +1118,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               /* 2) 모든 과거 날짜 펼쳐보기 모드 (viewAllPastDates) */
               Object.keys(groupedPastByDate).length === 0 ? (
                 <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-2xl">
-                  {isCurrentMonth ? '과거 내역이 아직 없습니다.' : `${sMonth}월 내역이 아직 없습니다.`}
+                  {isCurrentMonth ? '내역이 아직 없습니다.' : `${sMonth}월 내역이 아직 없습니다.`}
                 </div>
               ) : (
                 Object.entries(groupedPastByDate).map(([dateStr, items]) => {
