@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { getLocalDateString, type Income, type Expense, type Asset, type Settings, type FixedExpense, CATEGORIES } from '../types';
 import { 
   Plus, 
+  Minus,
   Trash2, 
   Calendar, 
   Wallet, 
@@ -105,6 +106,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
     .filter(a => a.type === 'debt')
     .reduce((sum, a) => sum + a.amount, 0);
   const netWorth = totalAssets - totalDebt;
+
+  // 1-1. 순자산 목표 및 달성률 계산
+  const assetGoal = settings?.asset_goal || 50000000;
+  const assetProgressPercent = assetGoal > 0 ? Math.round((netWorth / assetGoal) * 100) : 0;
+  const assetProgressBarWidth = Math.min(Math.max(assetProgressPercent, 0), 100);
 
   // 2. 오늘 데이터 (오늘 수입, 오늘 지출)
   const todayIncomes = incomes
@@ -277,7 +283,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         )}
       </div>
 
-      {/* 1. 내 전재산 카드 (숫자만 큼직하게) */}
+      {/* 1. 내 전재산 카드 (목표 달성률 및 게이지 그래프 포함) */}
       <section className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-3xl p-6 md:p-8 shadow-xl shadow-emerald-900/10">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-emerald-100 text-xs md:text-sm font-medium">
@@ -289,22 +295,48 @@ export const Dashboard: React.FC<DashboardProps> = ({
               setEditAssetAmount(netWorth.toString());
               setIsAssetEditOpen(true);
             }}
-            className="flex items-center gap-1.5 text-xs bg-white/15 hover:bg-white/25 active:scale-95 transition text-white px-3 py-1.5 rounded-full font-medium backdrop-blur-xs"
+            className="flex items-center gap-1.5 text-xs bg-white/15 hover:bg-white/25 active:scale-95 transition text-white px-3 py-1.5 rounded-full font-medium backdrop-blur-xs shrink-0"
           >
             <Edit2 size={12} />
             <span>수정</span>
           </button>
         </div>
 
-        <div className="mt-4 flex items-baseline">
-          <span className="text-4xl md:text-5xl font-black tracking-tight tabular-nums">
-            {netWorth.toLocaleString()}
-          </span>
-          <span className="ml-2 text-lg md:text-xl font-medium text-emerald-200">원</span>
+        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+          <div className="flex items-baseline">
+            <span className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight tabular-nums">
+              {netWorth.toLocaleString()}
+            </span>
+            <span className="ml-1.5 text-lg md:text-xl font-medium text-emerald-200">원</span>
+          </div>
+
+          {assetGoal > 0 && (
+            <div className="flex items-center gap-2 bg-white/15 backdrop-blur-xs px-3 py-1.5 rounded-xl border border-white/10 shrink-0">
+              <span className="text-xs text-emerald-100 font-medium">목표 {assetGoal.toLocaleString()}원</span>
+              <span className="text-xs font-black text-white tabular-nums bg-emerald-500/50 px-1.5 py-0.5 rounded-md">
+                {assetProgressPercent}%
+              </span>
+            </div>
+          )}
         </div>
-        <p className="mt-2 text-xs text-emerald-100/80">
-          통장 잔고와 자산을 합친 실제 내 돈입니다.
-        </p>
+
+        {/* 목표 달성률 게이지 바 (그래프) */}
+        {assetGoal > 0 && (
+          <div className="mt-4 pt-3.5 border-t border-white/15 space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-emerald-100/90 font-medium">1차 목표 달성률</span>
+              <span className="font-extrabold text-white tabular-nums">
+                {assetProgressPercent}% 달성
+              </span>
+            </div>
+            <div className="h-2.5 w-full bg-black/20 rounded-full overflow-hidden p-0.5 backdrop-blur-xs border border-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-emerald-300 to-white transition-all duration-500 shadow-xs"
+                style={{ width: `${assetProgressBarWidth}%` }}
+              />
+            </div>
+          </div>
+        )}
       </section>
 
       {/* 2. 요약 카드: 번 돈 & 쓸 용돈 */}
@@ -391,20 +423,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* 3. 수입 / 지출 초간편 입력 버튼 */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2.5">
         <button
           onClick={onOpenIncome}
-          className="h-13 bg-white hover:bg-slate-50 active:scale-[0.98] text-emerald-600 border-2 border-emerald-500/40 hover:border-emerald-500 font-bold text-sm md:text-base rounded-2xl transition shadow-xs flex items-center justify-center gap-2"
+          className="h-11 bg-white hover:bg-slate-50 active:scale-[0.98] text-emerald-700 border border-emerald-200/90 font-bold text-sm rounded-2xl transition shadow-2xs flex items-center justify-center gap-1.5"
         >
-          <Plus size={18} className="text-emerald-600" />
-          <span>+ 수입 입력</span>
+          <Plus size={16} className="text-emerald-600" />
+          <span>수입</span>
         </button>
         <button
           onClick={() => onOpenExpense('food')}
-          className="h-13 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm md:text-base rounded-2xl transition shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2"
+          className="h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-2xl transition shadow-xs shadow-emerald-600/20 flex items-center justify-center gap-1.5"
         >
-          <Plus size={18} />
-          <span>- 지출 입력</span>
+          <Minus size={16} />
+          <span>지출</span>
         </button>
       </div>
 
@@ -487,14 +519,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🛒</span>
-                <div>
-                  <h3 className="text-sm md:text-base font-bold text-slate-900">
-                    오늘의 지출
-                  </h3>
-                  <div className="text-[11px] text-rose-500 font-semibold">
-                    총 {todayExpenses.length}건 · -{todaySpent.toLocaleString()}원
-                  </div>
-                </div>
+                <h3 className="text-sm md:text-base font-bold text-slate-900">
+                  오늘의 지출
+                </h3>
               </div>
               <button
                 onClick={() => onOpenExpense('food')}
