@@ -636,9 +636,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <div className="flex items-center justify-between">
             {/* 좌측: 생활비 지출 (사업비·고정비 제외) */}
             <div>
-              <span className="text-[11px] font-semibold text-slate-400 block">
-                {isCurrentMonth ? '이번달' : `${sMonth}월`} 생활비 지출
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-slate-500">
+                  {isCurrentMonth ? '이번달' : `${sMonth}월`} 생활비 지출
+                </span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md font-medium">
+                  사업·고정비 제외
+                </span>
+              </div>
               <div className="flex items-baseline gap-0.5 mt-0.5">
                 <span className="text-xl sm:text-2xl font-black tabular-nums text-rose-500">
                   {monthUsedAllowance > 0 ? `-${monthUsedAllowance.toLocaleString()}` : '0'}
@@ -649,7 +654,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
             {/* 우측: 남은 생활 용돈 */}
             <div className="text-right">
-              <span className="text-[11px] font-semibold text-slate-400 block">
+              <span className="text-[11px] font-semibold text-slate-500 block">
                 남은 생활비 <span className="text-[10px] font-normal text-slate-400">(한도 100만)</span>
               </span>
               <div className="flex items-baseline justify-end gap-0.5 mt-0.5">
@@ -673,6 +678,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span>생활비 {rawPercent}% 사용 ({monthUsedAllowance.toLocaleString()}원)</span>
               <span>{remainingAllowance.toLocaleString()}원 남음</span>
             </div>
+            <p className="text-[10px] text-slate-400 text-center pt-0.5">
+              ※ 사업비와 고정비는 적용되지 않는 순수 생활비입니다.
+            </p>
           </div>
         </div>
       </section>
