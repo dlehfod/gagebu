@@ -519,9 +519,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <span className="text-lg">🛒</span>
-                <h3 className="text-sm md:text-base font-bold text-slate-900">
-                  오늘의 지출
-                </h3>
+                <div>
+                  <h3 className="text-sm md:text-base font-bold text-slate-900">
+                    오늘의 지출
+                  </h3>
+                  <div className="text-[11px] text-rose-500 font-semibold">
+                    총 {todayExpenses.length}건 · -{todaySpent.toLocaleString()}원
+                  </div>
+                </div>
               </div>
               <button
                 onClick={() => onOpenExpense('food')}
