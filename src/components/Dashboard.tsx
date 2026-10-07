@@ -358,7 +358,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </section>
 
       {/* 2. 요약 카드: 이번달 번 돈 */}
-      <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+      <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-400/70 shadow-sm flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between text-xs text-slate-500 font-semibold mb-2">
             <h3 className="text-sm md:text-base font-extrabold text-slate-900">
@@ -413,7 +413,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* 4. ⭐⭐⭐ [가장 중요] 오늘의 수입 & 오늘의 지출 내역 쭉 보이기 ⭐⭐⭐ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 4-1. 오늘의 수입 내역 (사주, 타로 등) */}
-        <section className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <section className="bg-white rounded-3xl p-5 border border-slate-400/70 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -505,7 +505,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </section>
 
         {/* 4-2. 오늘의 지출 내역 (식비, 머시기 등) */}
-        <section className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        <section className="bg-white rounded-3xl p-5 border border-slate-400/70 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
@@ -604,7 +604,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {/* 4-3. 이번달 지출 분류 (사업비, 식비 등) & 총지출 카드 */}
-      <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs space-y-4">
+      <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-400/70 shadow-sm space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <span className="text-lg">📊</span>
@@ -712,8 +712,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               />
             </div>
             <div className="flex items-center justify-between text-[11px] text-slate-400">
-              <span>생활비 {rawPercent}% 사용 ({monthUsedAllowance.toLocaleString()}원)</span>
-              <span>{remainingAllowance.toLocaleString()}원 남음</span>
+              <span>{rawPercent}% 사용</span>
             </div>
             <p className="text-[10px] text-slate-400 text-center pt-0.5">
               ※ 사업비와 고정비는 적용되지 않는 순수 생활비입니다.
@@ -723,7 +722,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </section>
 
       {/* 5. 매달 나갈 고정비 체크리스트 (하단, 날짜별 위) */}
-      <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs">
+      <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-400/70 shadow-sm">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
           <div className="min-w-0">
             <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-1.5 whitespace-nowrap">
@@ -849,7 +848,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       </section>
 
       {/* 6. 과거 날짜별 지출/수입 내역 (오늘 제외 순수 과거 기록 — 기본 접힘, 클릭 시 펼침) */}
-      <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-200/80 shadow-xs">
+      <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-400/70 shadow-sm">
         <div 
           onClick={() => setIsPastHistoryOpen(!isPastHistoryOpen)}
           className="flex items-center justify-between cursor-pointer select-none gap-2"
