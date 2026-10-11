@@ -564,18 +564,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           {catInfo?.emoji || '🏷️'}
                         </span>
                         <div className="min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs md:text-sm font-bold text-slate-800 truncate">
-                              {item.memo || catInfo?.label || '지출'}
-                            </span>
-                            {item.category === 'business' && item.memo && (
-                              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded-md border border-blue-200/90 shrink-0">
-                                💼 사업비
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-slate-400">
-                            {catInfo?.label || '기타'}
+                          <span className="text-xs md:text-sm font-bold text-slate-800 truncate block">
+                            {item.category === 'business' ? '사업비' : (item.memo || catInfo?.label || '지출')}
+                          </span>
+                          <span className={`text-[10px] ${item.category === 'business' && item.memo ? 'text-blue-600 font-medium' : 'text-slate-400'}`}>
+                            {item.category === 'business' && item.memo ? `(${item.memo})` : (catInfo?.label || '기타')}
                           </span>
                         </div>
                       </div>
@@ -1125,18 +1118,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     {catInfo?.emoji || '🏷️'}
                                   </div>
                                   <div className="min-w-0">
-                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                      <span className="text-xs font-bold text-slate-800 truncate">
-                                        {item.memo || catInfo?.label || '지출'}
-                                      </span>
-                                      {item.category === 'business' && item.memo && (
-                                        <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded-md border border-blue-200/90 shrink-0">
-                                          💼 사업비
-                                        </span>
-                                      )}
+                                    <div className="text-xs font-bold text-slate-800 truncate">
+                                      {item.category === 'business' ? '사업비' : (item.memo || catInfo?.label || '지출')}
                                     </div>
-                                    <div className="text-[10px] text-slate-400 font-medium">
-                                      {catInfo?.label || '기타'}
+                                    <div className={`text-[10px] ${item.category === 'business' && item.memo ? 'text-blue-600 font-medium' : 'text-slate-400 font-medium'}`}>
+                                      {item.category === 'business' && item.memo ? `(${item.memo})` : (catInfo?.label || '기타')}
                                     </div>
                                   </div>
                                 </div>

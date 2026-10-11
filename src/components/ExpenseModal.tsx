@@ -63,6 +63,11 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
       if (modalRef.current) {
         modalRef.current.scrollTop = 0;
       }
+      if (defaultCategory === 'business') {
+        setTimeout(() => {
+          businessSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 120);
+      }
     }
     return () => {
       document.body.style.overflow = '';
