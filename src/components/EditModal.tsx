@@ -17,6 +17,20 @@ export const EditModal: React.FC<EditModalProps> = ({ isOpen, item, onClose, onU
   const [category, setCategory] = useState<ExpenseCategory>('food');
   const [isPending, setIsPending] = useState(false);
 
+  const modalRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      if (modalRef.current) {
+        modalRef.current.scrollTop = 0;
+      }
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     if (item) {
       setAmountStr(String(item.amount));
@@ -63,7 +77,8 @@ export const EditModal: React.FC<EditModalProps> = ({ isOpen, item, onClose, onU
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
       <div 
-        className="w-full sm:max-w-md bg-white border border-slate-200/80 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl animate-in fade-in duration-200"
+        ref={modalRef}
+        className="w-full sm:max-w-md max-h-[85dvh] overflow-y-auto overscroll-contain bg-white border border-slate-200/80 rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl animate-in fade-in duration-200"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-3 border-b border-slate-100">
