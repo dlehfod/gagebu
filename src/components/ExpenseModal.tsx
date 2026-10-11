@@ -21,23 +21,38 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [isPending, setIsPending] = useState(true);
 
   // 고정비 구분 태그 상태
-  const [fixedTags, setFixedTags] = useState<string[]>([]);
+  const [fixedTags, setFixedTags] = useState<string[]>(['통신비', '월세/관리비', '보험료', '구독료(OTT/음악)', '교통/주유']);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
 
   // 사업비 구분 태그 상태
-  const [businessTags, setBusinessTags] = useState<string[]>([]);
+  const [businessTags, setBusinessTags] = useState<string[]>(['광고비', '바이브코딩', '기타']);
   const [isAddingBusinessTag, setIsAddingBusinessTag] = useState(false);
   const [newBusinessTagInput, setNewBusinessTagInput] = useState('');
 
-  const loadTags = async () => {
-    const fTags = await storageService.getFixedTags();
-    setFixedTags(fTags);
-    const bTags = await storageService.getBusinessTags();
-    setBusinessTags(bTags);
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  const businessSectionRef = React.useRef<HTMLDivElement>(null);
+  const fixedSectionRef = React.useRef<HTMLDivElement>(null);
+
+  const handleCategorySelect = (catKey: ExpenseCategory) => {
+    setCategory(catKey);
+    if (catKey === 'business') {
+      setTimeout(() => {
+        businessSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    } else if (catKey === 'fixed') {
+      setTimeout(() => {
+        fixedSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
   };
 
-  const modalRef = React.useRef<HTMLDivElement>(null);
+  const loadTags = async () => {
+    const fTags = await storageService.getFixedTags();
+    if (fTags && fTags.length > 0) setFixedTags(fTags);
+    const bTags = await storageService.getBusinessTags();
+    if (bTags && bTags.length > 0) setBusinessTags(bTags);
+  };
 
   React.useEffect(() => {
     if (isOpen) {
@@ -212,14 +227,24 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
               {(Object.keys(CATEGORIES) as ExpenseCategory[]).map((catKey) => {
                 const info = CATEGORIES[catKey];
                 const isSelected = category === catKey;
+
+                let selectedStyle = 'bg-rose-50 border-rose-400 text-rose-900 shadow-sm';
+                if (isSelected) {
+                  if (catKey === 'business') {
+                    selectedStyle = 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm ring-2 ring-blue-400/30';
+                  } else if (catKey === 'fixed') {
+                    selectedStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm ring-2 ring-emerald-400/30';
+                  }
+                }
+
                 return (
                   <button
                     key={catKey}
                     type="button"
-                    onClick={() => setCategory(catKey)}
+                    onClick={() => handleCategorySelect(catKey)}
                     className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition text-sm font-semibold ${
                       isSelected
-                        ? 'bg-rose-50 border-rose-400 text-rose-900 shadow-sm'
+                        ? selectedStyle
                         : 'bg-slate-50 border-slate-200/60 text-slate-700 hover:bg-slate-100'
                     }`}
                   >
@@ -236,7 +261,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
 
           {/* 고정비 세부 구분 칩 및 직접 추가 기능 */}
           {category === 'fixed' && (
-            <div className="bg-emerald-50/60 border border-emerald-200/70 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
+            <div ref={fixedSectionRef} className="bg-emerald-50/60 border border-emerald-200/70 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               {/* 납부 예정 vs 납부 완료 토글 */}
               <div className="flex bg-emerald-100/60 p-1 rounded-xl text-xs font-semibold">
                 <button
@@ -360,7 +385,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
 
           {/* 사업비 세부 구분 칩 및 직접 추가 기능 */}
           {category === 'business' && (
-            <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
+            <div ref={businessSectionRef} className="bg-blue-50/80 border border-blue-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
                 <span className="font-bold text-blue-950 flex items-center gap-1.5">
                   <span>💼</span>

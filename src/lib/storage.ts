@@ -446,12 +446,21 @@ export const storageService = {
 
   // === 사업비 구분 태그 (사용자 직접 생성/삭제) ===
   async getBusinessTags(): Promise<string[]> {
-    const raw = localStorage.getItem(STORAGE_KEYS.BUSINESS_TAGS);
-    if (!raw) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.BUSINESS_TAGS);
+      if (!raw) {
+        localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
+        return DEFAULT_BUSINESS_TAGS;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
       localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
       return DEFAULT_BUSINESS_TAGS;
+    } catch {
+      return DEFAULT_BUSINESS_TAGS;
     }
-    return JSON.parse(raw);
   },
 
   async addBusinessTag(tag: string): Promise<string[]> {
