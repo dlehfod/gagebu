@@ -564,9 +564,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           {catInfo?.emoji || '🏷️'}
                         </span>
                         <div className="min-w-0">
-                          <span className="text-xs md:text-sm font-bold text-slate-800 truncate block">
-                            {item.memo || catInfo?.label || '지출'}
-                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs md:text-sm font-bold text-slate-800 truncate">
+                              {item.memo || catInfo?.label || '지출'}
+                            </span>
+                            {item.category === 'business' && item.memo && (
+                              <span className="text-[10px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded-md border border-blue-200/90 shrink-0">
+                                💼 사업비
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[10px] text-slate-400">
                             {catInfo?.label || '기타'}
                           </span>
@@ -1118,8 +1125,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                     {catInfo?.emoji || '🏷️'}
                                   </div>
                                   <div className="min-w-0">
-                                    <div className="text-xs font-bold text-slate-800 truncate">
-                                      {item.memo || catInfo?.label || '지출'}
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="text-xs font-bold text-slate-800 truncate">
+                                        {item.memo || catInfo?.label || '지출'}
+                                      </span>
+                                      {item.category === 'business' && item.memo && (
+                                        <span className="text-[9px] bg-blue-100 text-blue-800 font-bold px-1.5 py-0.5 rounded-md border border-blue-200/90 shrink-0">
+                                          💼 사업비
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="text-[10px] text-slate-400 font-medium">
                                       {catInfo?.label || '기타'}

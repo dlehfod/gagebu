@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   ADJUSTMENTS: 'app_asset_adjustments',
   MONTHLY_SAVINGS: 'app_monthly_savings',
   FIXED_TAGS: 'app_fixed_tags',
+  BUSINESS_TAGS: 'app_business_tags',
 };
 
 // 기본 샘플 데이터 (앱 최초 실행 시 즉시 시각적으로 확인할 수 있도록 기본값 제공)
@@ -33,6 +34,7 @@ const DEFAULT_FIXED_EXPENSES: FixedExpense[] = [
 ];
 
 const DEFAULT_FIXED_TAGS: string[] = ['통신비', '월세/관리비', '보험료', '구독료(OTT/음악)', '교통/주유'];
+const DEFAULT_BUSINESS_TAGS: string[] = ['광고비', '바이브코딩', '기타'];
 
 export const storageService = {
   // === INCOMES ===
@@ -439,6 +441,32 @@ export const storageService = {
     const current = await this.getFixedTags();
     const updated = current.filter(t => t !== tag);
     localStorage.setItem(STORAGE_KEYS.FIXED_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  // === 사업비 구분 태그 (사용자 직접 생성/삭제) ===
+  async getBusinessTags(): Promise<string[]> {
+    const raw = localStorage.getItem(STORAGE_KEYS.BUSINESS_TAGS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
+      return DEFAULT_BUSINESS_TAGS;
+    }
+    return JSON.parse(raw);
+  },
+
+  async addBusinessTag(tag: string): Promise<string[]> {
+    const current = await this.getBusinessTags();
+    const cleanTag = tag.trim();
+    if (!cleanTag || current.includes(cleanTag)) return current;
+    const updated = [...current, cleanTag];
+    localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  async deleteBusinessTag(tag: string): Promise<string[]> {
+    const current = await this.getBusinessTags();
+    const updated = current.filter(t => t !== tag);
+    localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(updated));
     return updated;
   }
 };

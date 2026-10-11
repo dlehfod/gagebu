@@ -382,13 +382,20 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                             ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
                             : isPending
                               ? 'bg-amber-50 text-amber-600 border border-amber-200/80'
-                              : 'bg-slate-100 text-slate-700'
+                              : item.category === 'business'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200/80'
+                                : 'bg-slate-100 text-slate-700'
                         }`}>
                           {isExp ? catInfo?.emoji : '💰'}
                         </div>
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-slate-800 flex items-center gap-1.5 flex-wrap">
                             <span className="truncate">{item.memo || (isExp ? catInfo?.label : '수입')}</span>
+                            {isExp && item.category === 'business' && item.memo && (
+                              <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-md font-bold border border-blue-200/90 shrink-0">
+                                💼 사업비
+                              </span>
+                            )}
                             {isPending && (
                               <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-md font-bold border border-amber-300 shrink-0">
                                 납부 예정

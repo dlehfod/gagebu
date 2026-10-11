@@ -25,9 +25,16 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
 
+  // 사업비 구분 태그 상태
+  const [businessTags, setBusinessTags] = useState<string[]>([]);
+  const [isAddingBusinessTag, setIsAddingBusinessTag] = useState(false);
+  const [newBusinessTagInput, setNewBusinessTagInput] = useState('');
+
   const loadTags = async () => {
-    const tags = await storageService.getFixedTags();
-    setFixedTags(tags);
+    const fTags = await storageService.getFixedTags();
+    setFixedTags(fTags);
+    const bTags = await storageService.getBusinessTags();
+    setBusinessTags(bTags);
   };
 
   React.useEffect(() => {
@@ -50,6 +57,21 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const handleDeleteTag = async (tagToDelete: string) => {
     const updated = await storageService.deleteFixedTag(tagToDelete);
     setFixedTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleAddBusinessTag = async () => {
+    if (!newBusinessTagInput.trim()) return;
+    const updated = await storageService.addBusinessTag(newBusinessTagInput.trim());
+    setBusinessTags(updated);
+    setMemo(newBusinessTagInput.trim());
+    setNewBusinessTagInput('');
+    setIsAddingBusinessTag(false);
+  };
+
+  const handleDeleteBusinessTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteBusinessTag(tagToDelete);
+    setBusinessTags(updated);
     if (memo === tagToDelete) setMemo('');
   };
 
@@ -317,6 +339,104 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                           isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
                         }`}
                         title="구분 삭제"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 사업비 세부 구분 칩 및 직접 추가 기능 */}
+          {category === 'business' && (
+            <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <span className="font-bold text-blue-950 flex items-center gap-1.5">
+                  <span>💼</span>
+                  <span>사업비 세부 항목 (터치하여 선택)</span>
+                </span>
+                {!isAddingBusinessTag && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingBusinessTag(true)}
+                    className="text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-white border border-blue-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                  >
+                    <Plus size={11} />
+                    <span>새 항목 만들기</span>
+                  </button>
+                )}
+              </div>
+
+              {/* 새 사업비 구분 직접 만들기 폼 */}
+              {isAddingBusinessTag && (
+                <div className="flex gap-1.5 pt-1">
+                  <input
+                    type="text"
+                    placeholder="새 항목 이름 (예: 서버비, 식대, 비품)"
+                    value={newBusinessTagInput}
+                    onChange={(e) => setNewBusinessTagInput(e.target.value)}
+                    className="flex-1 bg-white border border-blue-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-blue-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddBusinessTag();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddBusinessTag}
+                    className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition"
+                  >
+                    추가
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingBusinessTag(false); setNewBusinessTagInput(''); }}
+                    className="px-2 py-1 bg-slate-200 text-slate-600 rounded-xl text-xs"
+                  >
+                    취소
+                  </button>
+                </div>
+              )}
+
+              {/* 사업비 태그 칩 목록 */}
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {businessTags.map((tag) => {
+                  const isSelected = memo === tag;
+                  return (
+                    <div
+                      key={tag}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold transition border ${
+                        isSelected
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-blue-200/70 hover:bg-blue-50/80'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemo(isSelected ? '' : tag);
+                        }}
+                        className="truncate"
+                      >
+                        {tag}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`'${tag}' 항목을 목록에서 삭제하시겠습니까?`)) {
+                            handleDeleteBusinessTag(tag);
+                          }
+                        }}
+                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
+                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
+                        }`}
+                        title="항목 삭제"
                       >
                         ×
                       </button>
