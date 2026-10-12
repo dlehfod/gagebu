@@ -215,10 +215,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // 선택된 특정 날짜의 내역 계산 및 수입/지출 분리
   const selectedDateItems = pastHistory.filter(it => it.date === selectedPastDate);
-  const selectedDateIncomes = selectedDateItems.filter(it => !it.isExpense);
-  const selectedDateExpenses = selectedDateItems.filter(it => it.isExpense);
+  const selectedDateIncomes = selectedDateItems.filter((it): it is (Income & { isExpense: false }) => !it.isExpense);
+  const selectedDateExpenses = selectedDateItems.filter((it): it is (Expense & { isExpense: true }) => it.isExpense);
   const selectedDateIncome = selectedDateIncomes.reduce((s, it) => s + it.amount, 0);
-  const selectedDateExpense = selectedDateExpenses.filter(it => !(it as any).is_pending).reduce((s, it) => s + it.amount, 0);
+  const selectedDateExpense = selectedDateExpenses.filter(it => !it.is_pending).reduce((s, it) => s + it.amount, 0);
 
   // 날짜별 내역 필터: 전체('all') | 수입만('income') | 지출만('expense')
   const [selectedDateFilter, setSelectedDateFilter] = useState<'all' | 'income' | 'expense'>('all');
