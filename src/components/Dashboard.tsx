@@ -122,6 +122,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   const todayRevenue = todayIncomes.reduce((sum, i) => sum + i.amount, 0);
   const todaySpent = todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const todayNetProfit = todayRevenue - todaySpent;
 
   // 3. 고정비 계산 (이번 달)
   const pendingFixedList = fixedExpenses.filter(f => !paidFixedIds.includes(f.id));
@@ -411,10 +412,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-lg">💰</span>
                 <div className="flex items-baseline gap-1.5">
                   <h3 className="text-sm font-extrabold text-slate-900">
-                    오늘의 수입
+                    오늘의 순수익
                   </h3>
-                  <span className="text-xs font-black text-emerald-600 tabular-nums">
-                    +{todayRevenue.toLocaleString()}원
+                  <span className={`text-xs font-black tabular-nums ${todayNetProfit >= 0 ? 'text-emerald-600' : 'text-rose-500 font-extrabold'}`}>
+                    {todayNetProfit > 0 ? `+${todayNetProfit.toLocaleString()}` : `${todayNetProfit.toLocaleString()}`}원
                   </span>
                   <span className="text-[10px] text-slate-400">
                     ({todayIncomes.length}건)
