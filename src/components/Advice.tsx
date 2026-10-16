@@ -310,25 +310,27 @@ export const Advice: React.FC<AdviceProps> = props => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ summary: buildSummary(props), qa }),
       });
-      if (!res.ok) throw new Error(`status ${res.status}`);
-      const data = await res.json();
-      const advice: AdviceItem[] = (Array.isArray(data.advice) ? data.advice : []).map((a: AdviceItem) => ({
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(data?.error || `서버 응답 오류 (${res.status})`);
+      }
+      const advice: AdviceItem[] = (Array.isArray(data?.advice) ? data.advice : []).map((a: AdviceItem) => ({
         ...a,
         level: a.level in LEVEL_STYLE ? a.level : 'info',
       }));
-      if (advice.length === 0) throw new Error('empty');
+      if (advice.length === 0) throw new Error('조언 내용이 비어있습니다.');
       const qs: string[] = Array.isArray(data.questions) ? data.questions.slice(0, 3) : [];
       setItems(advice);
       setQuestions(qs);
       setAnswers(qs.map(() => ''));
       setUsedAI(true);
-    } catch (e) {
+    } catch (e: any) {
       console.error('AI 조언 실패, 기본 분석으로 대체', e);
       setItems(buildAdvice(props));
       setQuestions([]);
       setAnswers([]);
       setUsedAI(false);
-      setNotice('AI 연결에 실패해서 기본 분석으로 보여드려요.');
+      setNotice(`AI 연결에 실패하여 기본 분석으로 표시 중입니다. (${e?.message || '알 수 없는 오류'})`);
     } finally {
       setLoading(false);
     }

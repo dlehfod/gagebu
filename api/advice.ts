@@ -1,7 +1,11 @@
 // Gemini API 호출 서버 함수 (Vercel Functions / 로컬 dev 서버 공용)
 // API 키는 브라우저에 노출되지 않도록 서버 환경변수 GEMINI_API_KEY 에서만 읽는다.
 
-const MODEL = 'gemini-2.5-flash';
+export const config = {
+  runtime: 'edge',
+};
+
+const MODEL = 'gemini-1.5-flash';
 
 const SYSTEM_PROMPT = `너는 한국 개인 가계부 앱 안의 친근하고 솔직한 재무 코치야.
 사용자는 사업(사업비)도 하고 고정비도 있는 1인 가구야. 아래 JSON 가계부 요약(이번 달 기준)을 보고 조언해.
@@ -71,7 +75,6 @@ export async function POST(request: Request): Promise<Response> {
         temperature: 0.6,
         responseMimeType: 'application/json',
         responseSchema: RESPONSE_SCHEMA,
-        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
   });
@@ -89,3 +92,5 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: 'AI 응답을 읽지 못했어요.' }, 502);
   }
 }
+
+export default POST;
