@@ -300,20 +300,27 @@ export const Advice: React.FC<AdviceProps> = props => {
   const [usedAI, setUsedAI] = useState(false);
   const [notice, setNotice] = useState('');
 
-  // AI(Gemini)에게 조언 요청. 실패하면 앱 안의 기본 분석으로 대체한다.
+  // AI(Gemini)에게 조언 요청. 서버리스 API 우선, 실패 시 클라이언트 키 직접 호출 백업
   const requestAdvice = async (qa: QA[]) => {
     setLoading(true);
     setNotice('');
+    const summary = buildSummary(props);
+
     try {
+      let data: any = null;
+
+      // 서버리스 함수 /api/advice 호출 (API 키는 서버에서만 사용)
       const res = await fetch('/api/advice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary: buildSummary(props), qa }),
+        body: JSON.stringify({ summary, qa }),
       });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        throw new Error(data?.error || `서버 응답 오류 (${res.status})`);
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.advice) {
+        throw new Error(json?.error || `서버 응답 오류 (${res.status})`);
       }
+      data = json;
+
       const advice: AdviceItem[] = (Array.isArray(data?.advice) ? data.advice : []).map((a: AdviceItem) => ({
         ...a,
         level: a.level in LEVEL_STYLE ? a.level : 'info',
