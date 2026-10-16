@@ -106,10 +106,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     .reduce((sum, a) => sum + a.amount, 0);
   const netWorth = totalAssets - totalDebt;
 
-  // 1-1. 순자산 목표 및 달성률 계산
-  const assetGoal = settings?.asset_goal || 50000000;
-  const assetProgressPercent = assetGoal > 0 ? Math.round((netWorth / assetGoal) * 100) : 0;
-
   // 2. 오늘 데이터 (오늘 수입, 오늘 지출)
   const todayIncomes = incomes
     .filter(i => i.date === todayStr)
