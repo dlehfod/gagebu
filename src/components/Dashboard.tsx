@@ -6,7 +6,6 @@ import {
   Trash2, 
   Calendar, 
   Wallet, 
-  ArrowUpRight, 
   CheckCircle2, 
   Circle,
   Edit2,
@@ -110,7 +109,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // 1-1. 순자산 목표 및 달성률 계산
   const assetGoal = settings?.asset_goal || 50000000;
   const assetProgressPercent = assetGoal > 0 ? Math.round((netWorth / assetGoal) * 100) : 0;
-  const assetProgressBarWidth = Math.min(Math.max(assetProgressPercent, 0), 100);
 
   // 2. 오늘 데이터 (오늘 수입, 오늘 지출)
   const todayIncomes = incomes
