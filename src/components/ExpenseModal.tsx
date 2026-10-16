@@ -30,8 +30,14 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [isAddingBusinessTag, setIsAddingBusinessTag] = useState(false);
   const [newBusinessTagInput, setNewBusinessTagInput] = useState('');
 
+  // 음식 구분 태그 상태
+  const [foodTags, setFoodTags] = useState<string[]>(['한끼', '군것질', '기타']);
+  const [isAddingFoodTag, setIsAddingFoodTag] = useState(false);
+  const [newFoodTagInput, setNewFoodTagInput] = useState('');
+
   const modalRef = React.useRef<HTMLDivElement>(null);
   const businessSectionRef = React.useRef<HTMLDivElement>(null);
+  const foodSectionRef = React.useRef<HTMLDivElement>(null);
   const fixedSectionRef = React.useRef<HTMLDivElement>(null);
 
   const handleCategorySelect = (catKey: ExpenseCategory) => {
@@ -39,6 +45,10 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     if (catKey === 'business') {
       setTimeout(() => {
         businessSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    } else if (catKey === 'food') {
+      setTimeout(() => {
+        foodSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 50);
     } else if (catKey === 'fixed') {
       setTimeout(() => {
@@ -52,6 +62,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     if (fTags && fTags.length > 0) setFixedTags(fTags);
     const bTags = await storageService.getBusinessTags();
     if (bTags && bTags.length > 0) setBusinessTags(bTags);
+    const foTags = await storageService.getFoodTags();
+    if (foTags && foTags.length > 0) setFoodTags(foTags);
   };
 
   React.useEffect(() => {
@@ -66,6 +78,10 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
       if (defaultCategory === 'business') {
         setTimeout(() => {
           businessSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 120);
+      } else if (defaultCategory === 'food') {
+        setTimeout(() => {
+          foodSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 120);
       }
     }
@@ -101,6 +117,21 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const handleDeleteBusinessTag = async (tagToDelete: string) => {
     const updated = await storageService.deleteBusinessTag(tagToDelete);
     setBusinessTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleAddFoodTag = async () => {
+    if (!newFoodTagInput.trim()) return;
+    const updated = await storageService.addFoodTag(newFoodTagInput.trim());
+    setFoodTags(updated);
+    setMemo(newFoodTagInput.trim());
+    setNewFoodTagInput('');
+    setIsAddingFoodTag(false);
+  };
+
+  const handleDeleteFoodTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteFoodTag(tagToDelete);
+    setFoodTags(updated);
     if (memo === tagToDelete) setMemo('');
   };
 
@@ -237,6 +268,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 if (isSelected) {
                   if (catKey === 'business') {
                     selectedStyle = 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm ring-2 ring-blue-400/30';
+                  } else if (catKey === 'food') {
+                    selectedStyle = 'bg-amber-50 border-amber-500 text-amber-900 shadow-sm ring-2 ring-amber-400/30';
                   } else if (catKey === 'fixed') {
                     selectedStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm ring-2 ring-emerald-400/30';
                   }
@@ -263,6 +296,104 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
               })}
             </div>
           </div>
+
+          {/* 음식(식비) 세부 구분 칩 및 직접 추가 기능 */}
+          {category === 'food' && (
+            <div ref={foodSectionRef} className="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                  <span>🍽️</span>
+                  <span>음식 세부 구분 (터치하여 선택)</span>
+                </span>
+                {!isAddingFoodTag && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingFoodTag(true)}
+                    className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 bg-white border border-amber-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                  >
+                    <Plus size={11} />
+                    <span>새 구분 만들기</span>
+                  </button>
+                )}
+              </div>
+
+              {/* 새 음식 구분 직접 만들기 폼 */}
+              {isAddingFoodTag && (
+                <div className="flex gap-1.5 pt-1">
+                  <input
+                    type="text"
+                    placeholder="새 구분 이름 (예: 커피, 야식, 배달)"
+                    value={newFoodTagInput}
+                    onChange={(e) => setNewFoodTagInput(e.target.value)}
+                    className="flex-1 bg-white border border-amber-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-amber-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddFoodTag();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddFoodTag}
+                    className="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition"
+                  >
+                    추가
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingFoodTag(false); setNewFoodTagInput(''); }}
+                    className="px-2 py-1 bg-slate-200 text-slate-600 rounded-xl text-xs"
+                  >
+                    취소
+                  </button>
+                </div>
+              )}
+
+              {/* 음식 태그 칩 목록 */}
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {foodTags.map((tag) => {
+                  const isSelected = memo === tag;
+                  return (
+                    <div
+                      key={tag}
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold transition border ${
+                        isSelected
+                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-amber-200/70 hover:bg-amber-50/80'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemo(isSelected ? '' : tag);
+                        }}
+                        className="truncate"
+                      >
+                        {tag}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
+                            handleDeleteFoodTag(tag);
+                          }
+                        }}
+                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
+                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
+                        }`}
+                        title="구분 삭제"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* 고정비 세부 구분 칩 및 직접 추가 기능 */}
           {category === 'fixed' && (

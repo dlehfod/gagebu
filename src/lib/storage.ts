@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   MONTHLY_SAVINGS: 'app_monthly_savings',
   FIXED_TAGS: 'app_fixed_tags',
   BUSINESS_TAGS: 'app_business_tags',
+  FOOD_TAGS: 'app_food_tags',
 };
 
 // 기본 샘플 데이터 (앱 최초 실행 시 즉시 시각적으로 확인할 수 있도록 기본값 제공)
@@ -35,6 +36,7 @@ const DEFAULT_FIXED_EXPENSES: FixedExpense[] = [
 
 const DEFAULT_FIXED_TAGS: string[] = ['통신비', '월세/관리비', '보험료', '구독료(OTT/음악)', '교통/주유'];
 const DEFAULT_BUSINESS_TAGS: string[] = ['광고비', '바이브코딩', '기타'];
+const DEFAULT_FOOD_TAGS: string[] = ['한끼', '군것질', '기타'];
 
 export const storageService = {
   // === INCOMES ===
@@ -476,6 +478,41 @@ export const storageService = {
     const current = await this.getBusinessTags();
     const updated = current.filter(t => t !== tag);
     localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  // === 음식 구분 태그 (한끼, 군것질, 기타 등) ===
+  async getFoodTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.FOOD_TAGS);
+      if (!raw) {
+        localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
+        return DEFAULT_FOOD_TAGS;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+      localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
+      return DEFAULT_FOOD_TAGS;
+    } catch {
+      return DEFAULT_FOOD_TAGS;
+    }
+  },
+
+  async addFoodTag(tag: string): Promise<string[]> {
+    const current = await this.getFoodTags();
+    const cleanTag = tag.trim();
+    if (!cleanTag || current.includes(cleanTag)) return current;
+    const updated = [...current, cleanTag];
+    localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  async deleteFoodTag(tag: string): Promise<string[]> {
+    const current = await this.getFoodTags();
+    const updated = current.filter(t => t !== tag);
+    localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(updated));
     return updated;
   }
 };

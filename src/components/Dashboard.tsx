@@ -552,10 +552,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </span>
                         <div className="min-w-0">
                           <span className="text-xs md:text-sm font-bold text-slate-800 truncate block">
-                            {item.category === 'business' ? '사업비' : (item.memo || catInfo?.label || '지출')}
+                            {item.category === 'business' ? '사업비' : item.category === 'food' ? (catInfo?.label || '음식') : (item.memo || catInfo?.label || '지출')}
                           </span>
-                          <span className={`text-[10px] ${item.category === 'business' && item.memo ? 'text-blue-600 font-medium' : 'text-slate-400'}`}>
-                            {item.category === 'business' && item.memo ? `(${item.memo})` : (catInfo?.label || '기타')}
+                          <span className={`text-[10px] ${
+                            item.category === 'business' && item.memo
+                              ? 'text-blue-600 font-medium'
+                              : item.category === 'food' && item.memo
+                                ? 'text-amber-600 font-medium'
+                                : 'text-slate-400'
+                          }`}>
+                            {item.category === 'business' && item.memo
+                              ? `(${item.memo})`
+                              : item.category === 'food' && item.memo
+                                ? `(${item.memo})`
+                                : (catInfo?.label || '기타')}
                           </span>
                         </div>
                       </div>
@@ -1009,7 +1019,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                               {item.isExpense ? (catInfo?.emoji || '🏷️') : '💰'}
                             </span>
                             <span className="text-xs font-semibold text-slate-800 truncate">
-                              {item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입')}
+                              {item.isExpense && (item as any).category === 'business'
+                                ? `사업비${item.memo ? ` (${item.memo})` : ''}`
+                                : item.isExpense && (item as any).category === 'food'
+                                  ? `음식${item.memo ? ` (${item.memo})` : ''}`
+                                  : (item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입'))}
                             </span>
                           </div>
                           <div className="flex items-center gap-1.5 shrink-0">
@@ -1093,10 +1107,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 </span>
                                 <div className="min-w-0">
                                   <div className="text-xs font-semibold text-slate-800 truncate">
-                                    {item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입')}
+                                    {item.isExpense && (item as any).category === 'business'
+                                      ? '사업비'
+                                      : item.isExpense && (item as any).category === 'food'
+                                        ? (catInfo?.label || '음식')
+                                        : (item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입'))}
                                   </div>
-                                  <div className="text-[10px] text-slate-400">
-                                    {item.isExpense ? (catInfo?.label || '기타') : '수입'}
+                                  <div className={`text-[10px] ${
+                                    item.isExpense && (item as any).category === 'business' && item.memo
+                                      ? 'text-blue-600 font-medium'
+                                      : item.isExpense && (item as any).category === 'food' && item.memo
+                                        ? 'text-amber-600 font-medium'
+                                        : 'text-slate-400'
+                                  }`}>
+                                    {item.isExpense && ((item as any).category === 'business' || (item as any).category === 'food') && item.memo
+                                      ? `(${item.memo})`
+                                      : (item.isExpense ? (catInfo?.label || '기타') : '수입')}
                                   </div>
                                 </div>
                               </div>
