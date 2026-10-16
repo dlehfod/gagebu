@@ -255,6 +255,15 @@ const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds
     byCategory[label] = (byCategory[label] || 0) + e.amount;
   });
 
+  // 음식 세부 구분(한끼/군것질/기타 등)별 합계. 구분 없이 입력된 음식은 '미구분'
+  const foodByTag: Record<string, number> = {};
+  monthExp
+    .filter(e => e.category === 'food')
+    .forEach(e => {
+      const tag = e.memo?.trim() || '미구분';
+      foodByTag[tag] = (foodByTag[tag] || 0) + e.amount;
+    });
+
   return {
     오늘날짜: todayStr,
     경과일수: day,
@@ -272,6 +281,7 @@ const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds
       actual.filter(e => e.date.startsWith(prevPrefix) && isLiving(e) && parseInt(e.date.slice(8, 10), 10) <= day),
     ),
     분류별지출: byCategory,
+    음식세부지출_한끼군것질구분: foodByTag,
     아직안낸고정비: fixedExpenses
       .filter(f => !paidFixedIds.includes(f.id))
       .map(f => ({ 이름: f.name, 금액: f.amount, 결제일: f.payment_day })),
