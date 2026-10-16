@@ -255,6 +255,26 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
+  // 내역 목록 범주 구분용: 수입 → 각 지출 범주 순으로 묶고, 범주가 바뀌면 선 + 라벨 표시
+  const groupOrder: string[] = ['income', ...categoryOrder];
+  const groupKeyOf = (it: any): string => {
+    if (!it.isExpense) return 'income';
+    return groupOrder.includes(it.category) ? it.category : 'other';
+  };
+  const sortByGroup = <T,>(arr: T[]): T[] =>
+    [...arr].sort((a, b) => groupOrder.indexOf(groupKeyOf(a)) - groupOrder.indexOf(groupKeyOf(b)));
+  const groupLabelOf = (k: string): string => {
+    if (k === 'income') return '💰 수입';
+    const info = (CATEGORIES as any)[k];
+    return `${info?.emoji || '🏷️'} ${k === 'food' ? '식비' : info?.label || '기타'}`;
+  };
+  const renderGroupHeader = (label: string) => (
+    <div className="flex items-center gap-2 pt-3 pb-1">
+      <span className="text-[11px] font-bold text-slate-500 shrink-0">{label}</span>
+      <div className="flex-1 border-t border-slate-300" />
+    </div>
+  );
+
   return (
     <div className="space-y-4 md:space-y-5 pb-24 md:pb-12 max-w-2xl mx-auto">
       {/* 0. 월 이동 네비게이터 (과거 달 / 다음 달 이동 화살표 & 달력) */}
@@ -374,6 +394,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
         </div>
+
+        {/* 이번달 총수입 (수입 - 지출 합산) */}
+        <div className="mt-3.5 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-xs sm:text-sm font-extrabold text-slate-700">
+            {isCurrentMonth ? '이번달' : `${sMonth}월`} 총수입 <span className="text-[10px] font-medium text-slate-400">(수입 − 지출)</span>
+          </span>
+          <span
+            className={`text-lg sm:text-xl font-black tabular-nums ${
+              monthRevenue - targetMonthTotalExpense >= 0 ? 'text-emerald-600' : 'text-rose-500'
+            }`}
+          >
+            {monthRevenue - targetMonthTotalExpense >= 0 ? '+' : '-'}
+            {Math.abs(monthRevenue - targetMonthTotalExpense).toLocaleString()}원
+          </span>
+        </div>
       </div>
 
       {/* 3. 수입 / 지출 초간편 입력 버튼 */}
@@ -399,18 +434,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* 4-1. 오늘의 수입 내역 (사주, 타로 등) */}
         <section className="bg-white rounded-3xl p-4 md:p-5 border border-slate-300/80 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">💰</span>
-                <div className="flex items-baseline gap-1.5">
-                  <h3 className="text-sm font-extrabold text-slate-900">
-                    오늘의 순수익
+            <div className="flex items-center justify-between -mx-1 px-3 py-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-2xl">💰</span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-emerald-900">
+                    오늘의 순수익 <span className="text-[10px] font-semibold text-emerald-600">({todayIncomes.length}건)</span>
                   </h3>
-                  <span className={`text-xs font-black tabular-nums ${todayNetProfit >= 0 ? 'text-emerald-600' : 'text-rose-500 font-extrabold'}`}>
+                  <span className={`block text-2xl font-black tabular-nums leading-tight ${todayNetProfit >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
                     {todayNetProfit > 0 ? `+${todayNetProfit.toLocaleString()}` : `${todayNetProfit.toLocaleString()}`}원
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    ({todayIncomes.length}건)
                   </span>
                 </div>
               </div>
@@ -478,18 +510,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* 4-2. 오늘의 지출 내역 (식비, 머시기 등) */}
         <section className="bg-white rounded-3xl p-4 md:p-5 border border-slate-300/80 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between pb-2.5 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🛒</span>
-                <div className="flex items-baseline gap-1.5">
-                  <h3 className="text-sm font-extrabold text-slate-900">
-                    오늘의 지출
+            <div className="flex items-center justify-between -mx-1 px-3 py-3 rounded-2xl bg-rose-50 border border-rose-200">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-2xl">🛒</span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-rose-900">
+                    오늘의 쓴돈 <span className="text-[10px] font-semibold text-rose-500">({todayExpenses.length}건)</span>
                   </h3>
-                  <span className="text-xs font-black text-rose-500 tabular-nums">
+                  <span className="block text-2xl font-black text-rose-500 tabular-nums leading-tight">
                     {todaySpent > 0 ? `-${todaySpent.toLocaleString()}` : '0'}원
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    ({todayExpenses.length}건)
                   </span>
                 </div>
               </div>
@@ -585,7 +614,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* 카테고리별 그리드 카드 (사업비, 식비, 물건 등) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {monthCategoryList.map(({ key, label, emoji, amount, percent }) => {
+          {[...monthCategoryList]
+            .sort((a, b) => {
+              const aEx = a.key === 'business' || a.key === 'fixed' ? 1 : 0;
+              const bEx = b.key === 'business' || b.key === 'fixed' ? 1 : 0;
+              return aEx - bEx;
+            })
+            .map(({ key, label, emoji, amount, percent }) => {
             const hasSpent = amount > 0;
             // 사업비·고정비는 생활비(용돈 한도) 계산에서 제외되는 항목
             const isExcluded = key === 'business' || key === 'fixed';
@@ -958,13 +993,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     기록된 내역이 없습니다.
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-100">
-                    {selectedDateItems.map(item => {
+                  <div>
+                    {sortByGroup(selectedDateItems).map((item, idx, arr) => {
+                      const gk = groupKeyOf(item);
+                      const showHead = idx === 0 || groupKeyOf(arr[idx - 1]) !== gk;
                       const catInfo = item.isExpense && (item as any).category
                         ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES]
                         : null;
                       return (
-                        <div key={item.id} className="flex items-center justify-between py-2 px-1">
+                        <React.Fragment key={item.id}>
+                        {showHead && renderGroupHeader(groupLabelOf(gk))}
+                        <div className="flex items-center justify-between py-2 px-1">
                           <div className="flex items-center gap-2 min-w-0">
                             <span className="text-sm shrink-0">
                               {item.isExpense ? (catInfo?.emoji || '🏷️') : '💰'}
@@ -1000,6 +1039,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                             )}
                           </div>
                         </div>
+                        </React.Fragment>
                       );
                     })}
                   </div>
@@ -1033,16 +1073,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                       </div>
 
-                      <div className="space-y-1 pt-0.5">
-                        {items.map(item => {
+                      <div className="pt-0.5">
+                        {sortByGroup(items).map((item, idx, arr) => {
+                          const gk = groupKeyOf(item);
+                          const showHead = idx === 0 || groupKeyOf(arr[idx - 1]) !== gk;
                           const catInfo = item.isExpense && (item as any).category 
                             ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES] 
                             : null;
 
                           return (
+                            <React.Fragment key={item.id}>
+                            {showHead && renderGroupHeader(groupLabelOf(gk))}
                             <div
-                              key={item.id}
-                              className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50/70 hover:bg-slate-100/80 border border-slate-100 transition"
+                              className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50/70 hover:bg-slate-100/80 border border-slate-100 transition mb-1"
                             >
                               <div className="flex items-center gap-2.5 min-w-0">
                                 <span className="text-sm shrink-0">
@@ -1085,6 +1128,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                                 )}
                               </div>
                             </div>
+                            </React.Fragment>
                           );
                         })}
                       </div>

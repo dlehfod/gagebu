@@ -10,13 +10,11 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }) => {
   const [limitStr, setLimitStr] = useState(String(settings.monthly_discretionary_limit || 1000000));
-  const [assetGoalStr, setAssetGoalStr] = useState(String(settings.asset_goal || 0));
   const [isSaved, setIsSaved] = useState(false);
 
   // settings props가 변경되거나 로드되었을 때 상태 동기화
   React.useEffect(() => {
     setLimitStr(String(settings.monthly_discretionary_limit || 1000000));
-    setAssetGoalStr(String(settings.asset_goal || 0));
   }, [settings]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -29,7 +27,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }
     onSave({
       monthly_discretionary_limit: cleanNum(limitStr, 1000000),
       monthly_saving_goal: settings.monthly_saving_goal || 0,
-      asset_goal: cleanNum(assetGoalStr, 50000000),
+      asset_goal: settings.asset_goal,
     });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
@@ -76,22 +74,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }
               inputMode="numeric"
               value={limitStr ? Number(limitStr.replace(/[^0-9]/g, '')).toLocaleString() : ''}
               onChange={(e) => setLimitStr(e.target.value.replace(/[^0-9]/g, ''))}
-              className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-slate-400"
-            />
-            <span className="absolute right-4 top-3 text-xs text-slate-400">원</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-            내가 꿈꾸는 1차 순자산 목표
-          </label>
-          <div className="relative">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={assetGoalStr ? Number(assetGoalStr.replace(/[^0-9]/g, '')).toLocaleString() : ''}
-              onChange={(e) => setAssetGoalStr(e.target.value.replace(/[^0-9]/g, ''))}
               className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-slate-400"
             />
             <span className="absolute right-4 top-3 text-xs text-slate-400">원</span>

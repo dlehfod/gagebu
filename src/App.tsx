@@ -5,12 +5,13 @@ import { Dashboard } from './components/Dashboard';
 import { HistoryList } from './components/HistoryList';
 import { AssetManager } from './components/AssetManager';
 import { SettingsModal } from './components/SettingsModal';
+import { Advice } from './components/Advice';
 import { ExpenseModal } from './components/ExpenseModal';
 import { IncomeModal } from './components/IncomeModal';
-import { Home, ReceiptText, PlusCircle, Landmark, Settings as SettingsIcon } from 'lucide-react';
+import { Home, ReceiptText, PlusCircle, Landmark, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'assets' | 'settings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'history' | 'assets' | 'advice' | 'settings'>('home');
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -380,6 +381,7 @@ export function App() {
                 ['home', '홈'],
                 ['history', '내역'],
                 ['assets', '자산'],
+                ['advice', '조언'],
                 ['settings', '설정'],
               ] as const).map(([key, label]) => (
                 <button
@@ -460,6 +462,16 @@ export function App() {
             />
           )}
 
+          {activeTab === 'advice' && (
+            <Advice
+              incomes={incomes}
+              expenses={expenses}
+              settings={settings}
+              fixedExpenses={fixedExpenses}
+              paidFixedIds={paidFixedIds}
+            />
+          )}
+
           {activeTab === 'settings' && (
             <SettingsModal
               settings={settings}
@@ -536,6 +548,7 @@ export function App() {
 
             {([
               ['assets', '자산', Landmark],
+              ['advice', '조언', Sparkles],
               ['settings', '설정', SettingsIcon],
             ] as const).map(([key, label, Icon]) => (
               <button

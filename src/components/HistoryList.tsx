@@ -136,6 +136,20 @@ export const HistoryList: React.FC<HistoryListProps> = ({
     }
   };
 
+  // 범주 구분용: 수입 → 각 지출 범주 순으로 묶고, 범주가 바뀌면 구분 줄 표시
+  const groupOrder: string[] = ['income', 'business', 'food', 'shopping', 'entertainment', 'fixed', 'other'];
+  const groupKeyOf = (it: any): string => {
+    if (!it.isExpense) return 'income';
+    return groupOrder.includes(it.category) ? it.category : 'other';
+  };
+  const sortByGroup = <T,>(arr: T[]): T[] =>
+    [...arr].sort((a, b) => groupOrder.indexOf(groupKeyOf(a)) - groupOrder.indexOf(groupKeyOf(b)));
+  const groupLabelOf = (k: string): string => {
+    if (k === 'income') return '💰 수입';
+    const info = (CATEGORIES as any)[k];
+    return `${info?.emoji || '🏷️'} ${k === 'food' ? '식비' : info?.label || '기타'}`;
+  };
+
   return (
     <div className="space-y-4 pb-24">
       {/* 1. 상단 년/월 네비게이터 & 요약 배너 */}
@@ -365,14 +379,21 @@ export const HistoryList: React.FC<HistoryListProps> = ({
               </div>
 
               <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden divide-y divide-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-                {items.map(item => {
+                {sortByGroup(items).map((item, idx, arr) => {
                   const isExp = item.isExpense;
                   const isPending = isExp && Boolean(item.is_pending);
                   const catInfo = isExp ? CATEGORIES[item.category] : null;
+                  const gk = groupKeyOf(item);
+                  const showHead = idx === 0 || groupKeyOf(arr[idx - 1]) !== gk;
 
                   return (
+                    <React.Fragment key={item.id}>
+                    {showHead && (
+                      <div className="px-3.5 py-1.5 bg-slate-50 border-t border-slate-300 first:border-t-0 text-[11px] font-bold text-slate-500">
+                        {groupLabelOf(gk)}
+                      </div>
+                    )}
                     <div
-                      key={item.id}
                       onClick={() => setSelectedItem(item)}
                       className="w-full text-left p-3.5 flex items-center justify-between hover:bg-slate-50 active:bg-slate-100 transition cursor-pointer"
                     >
@@ -455,6 +476,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                         )}
                       </div>
                     </div>
+                    </React.Fragment>
                   );
                 })}
               </div>
