@@ -220,8 +220,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const selectedDateIncome = selectedDateIncomes.reduce((s, it) => s + it.amount, 0);
   const selectedDateExpense = selectedDateExpenses.filter(it => !it.is_pending).reduce((s, it) => s + it.amount, 0);
 
-  // 날짜별 내역 필터: 전체('all') | 수입만('income') | 지출만('expense')
-  const [selectedDateFilter, setSelectedDateFilter] = useState<'all' | 'income' | 'expense'>('all');
 
   // 선택된 달 번 돈 (수입 합계)
   const targetMonthIncomes = incomes.filter(i => i.date.startsWith(selectedMonth));
@@ -589,32 +587,53 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
           {monthCategoryList.map(({ key, label, emoji, amount, percent }) => {
             const hasSpent = amount > 0;
+            // 사업비·고정비는 생활비(용돈 한도) 계산에서 제외되는 항목
+            const isExcluded = key === 'business' || key === 'fixed';
             return (
               <div
                 key={key}
                 onClick={() => onOpenExpense(key as any)}
-                className={`p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
-                  hasSpent
+                className={`relative overflow-hidden p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
+                  isExcluded
+                    ? 'bg-slate-100/60 border-dashed border-slate-200 opacity-50 grayscale hover:opacity-80'
+                    : hasSpent
                     ? 'bg-slate-50/90 border-slate-200/80'
                     : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
                 }`}
-                title="클릭 시 이 카테고리로 지출 입력"
+                title={isExcluded ? '생활비 계산에서 제외되는 항목 (클릭 시 이 카테고리로 지출 입력)' : '클릭 시 이 카테고리로 지출 입력'}
               >
-                <div className="flex items-center justify-between">
+                {isExcluded && (
+                  <X
+                    size={64}
+                    strokeWidth={1.5}
+                    className="absolute -right-2 -bottom-3 text-slate-300/60 pointer-events-none"
+                  />
+                )}
+                <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="text-base">{emoji}</span>
                     <span className="text-xs font-bold text-slate-700">{label}</span>
                   </div>
-                  {hasSpent && (
-                    <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
-                      {percent}%
+                  {isExcluded ? (
+                    <span className="text-[9px] font-semibold text-slate-400 bg-white/80 border border-slate-200 px-1.5 py-0.5 rounded-md">
+                      제외
                     </span>
+                  ) : (
+                    hasSpent && (
+                      <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
+                        {percent}%
+                      </span>
+                    )
                   )}
                 </div>
-                <div className="mt-2 text-right">
+                <div className="relative mt-2 text-right">
                   <span
                     className={`text-xs sm:text-sm font-black tabular-nums ${
-                      hasSpent ? 'text-slate-900' : 'text-slate-300'
+                      isExcluded
+                        ? 'text-slate-400 line-through decoration-slate-300'
+                        : hasSpent
+                        ? 'text-slate-900'
+                        : 'text-slate-300'
                     }`}
                   >
                     {amount.toLocaleString()}원
@@ -909,202 +928,80 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* 1) 특정 날짜 넘겨보기 모드 (!viewAllPastDates) */}
             {!viewAllPastDates ? (
               <div className="space-y-3">
-                {/* 상단 날짜 헤더 & 총액 */}
-                <div className="flex flex-wrap items-center justify-between gap-1 text-xs px-1 pb-1 border-b border-slate-100">
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-slate-900 text-sm md:text-base">
-                      {selectedPastDate}
+                {/* 하루 요약: 날짜 + 총수입(수입-지출 합산) */}
+                <div className="rounded-2xl bg-slate-50 border border-slate-200/70 px-4 py-3">
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="font-bold text-slate-800 text-sm">{selectedPastDate}</span>
+                    <span>{selectedDateItems.length}건</span>
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-xs font-semibold text-slate-500">
+                      {selectedPastDate === todayStr ? '오늘의 총수입' : '이날의 총수입'}
                     </span>
-                    <span className="text-[11px] text-slate-400">
-                      ({selectedDateItems.length}건)
+                    <span
+                      className={`text-xl font-black tabular-nums ${
+                        selectedDateIncome - selectedDateExpense >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                      }`}
+                    >
+                      {selectedDateIncome - selectedDateExpense >= 0 ? '+' : '-'}
+                      {Math.abs(selectedDateIncome - selectedDateExpense).toLocaleString()}원
                     </span>
                   </div>
-
-                  <div className="flex items-center gap-1.5 text-xs tabular-nums">
-                    <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200/60 font-semibold">
-                      총수입 <strong className="text-emerald-700 font-extrabold">+{selectedDateIncome.toLocaleString()}원</strong>
-                    </span>
-                    <span className="text-rose-700 bg-rose-50 px-2 py-0.5 rounded-lg border border-rose-200/60 font-semibold">
-                      총지출 <strong className="text-rose-700 font-extrabold">{selectedDateExpense > 0 ? `-${selectedDateExpense.toLocaleString()}원` : '0원'}</strong>
-                    </span>
+                  <div className="mt-1 flex items-center justify-end gap-3 text-[11px] tabular-nums text-slate-500">
+                    <span>수입 <b className="text-emerald-600">+{selectedDateIncome.toLocaleString()}</b></span>
+                    <span>지출 <b className="text-slate-700">-{selectedDateExpense.toLocaleString()}</b></span>
                   </div>
                 </div>
 
-                {/* 가시성 극대화 원터치 필터 칩 (전체 / 💰 수입 / 🛒 지출) */}
-                {selectedDateItems.length > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDateFilter('all')}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition ${
-                        selectedDateFilter === 'all'
-                          ? 'bg-slate-900 text-white shadow-2xs'
-                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      전체 ({selectedDateItems.length})
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDateFilter('income')}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
-                        selectedDateFilter === 'income'
-                          ? 'bg-emerald-600 text-white shadow-2xs'
-                          : 'bg-white text-emerald-700 border border-emerald-200 hover:bg-emerald-50'
-                      }`}
-                    >
-                      <span>💰 수입</span>
-                      <span>({selectedDateIncomes.length})</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDateFilter('expense')}
-                      className={`px-2.5 py-1 rounded-xl text-xs font-bold transition flex items-center gap-1 ${
-                        selectedDateFilter === 'expense'
-                          ? 'bg-rose-600 text-white shadow-2xs'
-                          : 'bg-white text-rose-700 border border-rose-200 hover:bg-rose-50'
-                      }`}
-                    >
-                      <span>🛒 지출</span>
-                      <span>({selectedDateExpenses.length})</span>
-                    </button>
-                  </div>
-                )}
-
                 {selectedDateItems.length === 0 ? (
-                  <div className="text-center py-8 text-xs text-slate-400 bg-slate-50/60 rounded-2xl border border-dashed border-slate-200">
-                    <Calendar size={20} className="mx-auto mb-1.5 text-slate-300" />
-                    <span>{selectedPastDate} 에는 기록된 내역이 없습니다.</span>
+                  <div className="text-center py-6 text-xs text-slate-400">
+                    기록된 내역이 없습니다.
                   </div>
                 ) : (
-                  <div className="space-y-3.5 pt-0.5">
-                    {/* 1. 💰 수입 묶음 영역 (수입이 있고 필터에 해당할 때) */}
-                    {(selectedDateFilter === 'all' || selectedDateFilter === 'income') && selectedDateIncomes.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs font-bold text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 px-3 py-1.5 rounded-xl">
-                          <span className="flex items-center gap-1.5">
-                            <span>💰 번 돈</span>
-                            <span className="text-[10px] font-semibold text-emerald-600 bg-white px-1.5 py-0.5 rounded-full border border-emerald-200/60">
-                              {selectedDateIncomes.length}건
+                  <div className="divide-y divide-slate-100">
+                    {selectedDateItems.map(item => {
+                      const catInfo = item.isExpense && (item as any).category
+                        ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES]
+                        : null;
+                      return (
+                        <div key={item.id} className="flex items-center justify-between py-2 px-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-sm shrink-0">
+                              {item.isExpense ? (catInfo?.emoji || '🏷️') : '💰'}
                             </span>
-                          </span>
-                          <span className="tabular-nums font-black text-emerald-600">
-                            +{selectedDateIncome.toLocaleString()}원
-                          </span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {selectedDateIncomes.map(item => (
-                            <div
-                              key={item.id}
-                              className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-emerald-50/30 hover:bg-emerald-50/60 border border-emerald-100 transition shadow-2xs"
+                            <span className="text-xs font-semibold text-slate-800 truncate">
+                              {item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입')}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span
+                              className={`text-xs md:text-sm font-bold tabular-nums ${
+                                item.isExpense ? 'text-slate-800' : 'text-emerald-600'
+                              }`}
                             >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center text-sm shrink-0 font-bold">
-                                  💰
-                                </div>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-bold text-slate-800 truncate">
-                                    {item.memo || '수입'}
-                                  </div>
-                                  <div className="text-[10px] text-emerald-600 font-medium">
-                                    수입
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span className="text-xs md:text-sm font-black tabular-nums text-emerald-600">
-                                  +{item.amount.toLocaleString()}원
-                                </span>
-                                <button
-                                  onClick={() => setSelectedHistoryItem(item)}
-                                  className="text-slate-300 hover:text-slate-600 p-1 rounded transition"
-                                  title="수정"
-                                >
-                                  <Edit2 size={12} />
-                                </button>
-                                {onDeleteItem && (
-                                  <button
-                                    onClick={() => onDeleteItem(item.id, false)}
-                                    className="text-slate-300 hover:text-rose-500 p-1 rounded transition"
-                                    title="삭제"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 2. 🛒 지출 묶음 영역 (지출이 있고 필터에 해당할 때) */}
-                    {(selectedDateFilter === 'all' || selectedDateFilter === 'expense') && selectedDateExpenses.length > 0 && (
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 bg-slate-100/80 border border-slate-200/60 px-3 py-1.5 rounded-xl">
-                          <span className="flex items-center gap-1.5">
-                            <span>🛒 쓴 돈</span>
-                            <span className="text-[10px] font-semibold text-slate-500 bg-white px-1.5 py-0.5 rounded-full border border-slate-200/60">
-                              {selectedDateExpenses.length}건
+                              {item.isExpense ? '-' : '+'}
+                              {item.amount.toLocaleString()}원
                             </span>
-                          </span>
-                          <span className="tabular-nums font-black text-rose-500">
-                            -{selectedDateExpense.toLocaleString()}원
-                          </span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {selectedDateExpenses.map(item => {
-                            const catInfo = (item as any).category
-                              ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES]
-                              : null;
-
-                            return (
-                              <div
-                                key={item.id}
-                                className="flex items-center justify-between p-2.5 px-3 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200/80 transition shadow-2xs"
+                            <button
+                              onClick={() => setSelectedHistoryItem(item)}
+                              className="text-slate-300 hover:text-slate-600 p-1 rounded transition"
+                              title="수정"
+                            >
+                              <Edit2 size={12} />
+                            </button>
+                            {onDeleteItem && (
+                              <button
+                                onClick={() => onDeleteItem(item.id, item.isExpense)}
+                                className="text-slate-300 hover:text-rose-500 p-1 rounded transition"
+                                title="삭제"
                               >
-                                <div className="flex items-center gap-2.5 min-w-0">
-                                  <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm shrink-0">
-                                    {catInfo?.emoji || '🏷️'}
-                                  </div>
-                                  <div className="min-w-0">
-                                    <div className="text-xs font-bold text-slate-800 truncate">
-                                      {item.category === 'business' ? '사업비' : (item.memo || catInfo?.label || '지출')}
-                                    </div>
-                                    <div className={`text-[10px] ${item.category === 'business' && item.memo ? 'text-blue-600 font-medium' : 'text-slate-400 font-medium'}`}>
-                                      {item.category === 'business' && item.memo ? `(${item.memo})` : (catInfo?.label || '기타')}
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <span className="text-xs md:text-sm font-black tabular-nums text-slate-900">
-                                    -{item.amount.toLocaleString()}원
-                                  </span>
-                                  <button
-                                    onClick={() => setSelectedHistoryItem(item)}
-                                    className="text-slate-300 hover:text-slate-600 p-1 rounded transition"
-                                    title="수정"
-                                  >
-                                    <Edit2 size={12} />
-                                  </button>
-                                  {onDeleteItem && (
-                                    <button
-                                      onClick={() => onDeleteItem(item.id, true)}
-                                      className="text-slate-300 hover:text-rose-500 p-1 rounded transition"
-                                      title="삭제"
-                                    >
-                                      <Trash2 size={12} />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })}
                   </div>
                 )}
               </div>
