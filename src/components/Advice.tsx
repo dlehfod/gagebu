@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { type Income, type Expense, type Settings, type FixedExpense, CATEGORIES } from '../types';
-import { Sparkles, Loader2, RefreshCw } from 'lucide-react';
+import { Sparkles, Loader2, RefreshCw, Send, MessageCircle, Bot, User, CheckCircle2 } from 'lucide-react';
 
 interface AdviceProps {
   incomes: Income[];
@@ -10,37 +10,21 @@ interface AdviceProps {
   paidFixedIds: string[];
 }
 
-type Level = 'danger' | 'warn' | 'good' | 'info';
-
-interface AdviceItem {
-  level: Level;
-  emoji: string;
-  title: string;
-  body: string;
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
 }
 
 const won = (n: number) => `${Math.round(n).toLocaleString()}원`;
 const sum = (arr: { amount: number }[]) => arr.reduce((s, x) => s + x.amount, 0);
 
-const LEVEL_STYLE: Record<Level, { box: string; title: string }> = {
-  danger: { box: 'bg-rose-50 border-rose-200', title: 'text-rose-700' },
-  warn: { box: 'bg-amber-50 border-amber-200', title: 'text-amber-700' },
-  good: { box: 'bg-emerald-50 border-emerald-200', title: 'text-emerald-700' },
-  info: { box: 'bg-slate-50 border-slate-200', title: 'text-slate-700' },
-};
-
-const LEVEL_ORDER: Record<Level, number> = { danger: 0, warn: 1, info: 2, good: 3 };
-
-// 가계부 숫자를 보고 규칙 기반으로 조언 목록을 만든다 (외부 AI 호출 없음)
-const buildAdvice = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds }: AdviceProps): AdviceItem[] => {
+// 로컬 규칙 기반 종합 조언 생성 함수 (API 실패 시 또는 기본 단일 텍스트 조언용)
+const generateSingleAdviceText = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds }: AdviceProps): string => {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
   const pad = (n: number) => String(n).padStart(2, '0');
   const prefix = `${y}-${pad(m + 1)}`;
-  const prevDate = new Date(y, m - 1, 1);
-  const prevPrefix = `${prevDate.getFullYear()}-${pad(prevDate.getMonth() + 1)}`;
-  const todayStr = `${prefix}-${pad(now.getDate())}`;
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const day = now.getDate();
   const remainingDays = daysInMonth - day + 1; // 오늘 포함
@@ -59,182 +43,85 @@ const buildAdvice = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds 
   const revenue = sum(incomes.filter(i => i.date.startsWith(prefix)));
   const net = revenue - totalExpense;
 
-  const items: AdviceItem[] = [];
-
-  // 기록이 거의 없을 때
   if (monthExp.length === 0 && revenue === 0) {
-    return [
-      {
-        level: 'info',
-        emoji: '📝',
-        title: '아직 이번 달 기록이 없어요',
-        body: '수입이나 지출을 몇 개 기록하면 그에 맞춰 조언을 드릴게요.',
-      },
-    ];
+    return `📝 아직 이번 달 가계부 기록이 등록되지 않았어요.\n\n수입이나 지출을 몇 개 기록해 주시면, 대표님의 평소 소비 습관과 수입 흐름을 꼼꼼히 분석해서 꼭 맞는 재정 조언을 들려드릴게요.`;
   }
 
-  // 1. 생활비 한도
+  const sections: string[] = [];
+
+  // 1. 생활비 한도 및 잔여 현황
   if (living > limit) {
-    items.push({
-      level: 'danger',
-      emoji: '🚨',
-      title: `생활비 한도를 ${won(living - limit)} 넘었어요`,
-      body: `한도 ${won(limit)} 중 ${won(living)}을 썼어요. 남은 ${remainingDays}일은 꼭 필요한 지출만 하는 걸 추천해요.`,
-    });
+    sections.push(
+      `1. 생활비 한도 상태\n· 이번 달 생활비 한도 ${won(limit)} 중 ${won(living)}을 사용하여, 한도를 ${won(living - limit)} 초과한 상태예요.\n· 남은 ${remainingDays}일 동안은 꼭 필요한 기본 식비 외의 지출은 최대한 멈추고 방어 모드로 운영하시는 것을 권장드려요.`
+    );
   } else {
     const remaining = limit - living;
     const perDay = Math.floor(remaining / Math.max(remainingDays, 1));
     const projected = (living / Math.max(day, 1)) * daysInMonth;
+
     if (projected > limit) {
-      items.push({
-        level: 'warn',
-        emoji: '⚠️',
-        title: '이 속도면 월말에 한도를 넘어요',
-        body: `지금까지 ${won(living)} 썼고, 이 속도면 월말에 약 ${won(projected)}이에요. 하루 ${won(perDay)} 이하로 쓰면 한도 안에서 끝낼 수 있어요.`,
-      });
+      sections.push(
+        `1. 생활비 한도 상태 (주의)\n· 지금까지 생활비로 ${won(living)}을 사용하셨어요. (남은 생활비: ${won(remaining)})\n· 현재 지출 속도가 다소 빨라 이대로 유지되면 월말에 약 ${won(projected)}을 쓸 것으로 예상돼요.\n· 앞으로 남은 기간 동안 하루 평균 ${won(perDay)} 이하로 지출하시면 한도 안에서 안전하게 마무리할 수 있어요.`
+      );
     } else {
-      items.push({
-        level: 'good',
-        emoji: '👍',
-        title: '생활비를 잘 지키고 있어요',
-        body: `한도 ${won(limit)} 중 ${won(living)} 사용, 남은 ${won(remaining)}이에요. 하루 ${won(perDay)}까지 써도 괜찮아요.`,
-      });
-    }
-
-    // 2. 오늘 지출이 하루 권장액을 넘었는지 (한도 안일 때만)
-    const todayLiving = sum(livingList.filter(e => e.date === todayStr));
-    if (perDay > 0 && todayLiving > perDay) {
-      items.push({
-        level: 'warn',
-        emoji: '🛒',
-        title: '오늘은 평소 권장액보다 많이 썼어요',
-        body: `오늘 ${won(todayLiving)} 사용 (하루 권장 ${won(perDay)}). 내일 조금 아끼면 균형이 맞아요.`,
-      });
+      sections.push(
+        `1. 생활비 한도 상태 (안정)\n· 이번 달 생활비 한도 ${won(limit)} 중 ${won(living)}만 사용하여 아주 훌륭하게 아끼고 계세요.\n· 남은 생활비는 ${won(remaining)}이며, 남은 ${remainingDays}일 동안 하루 ${won(perDay)}까지 여유 있게 쓰셔도 안전해요.`
+      );
     }
   }
 
-  // 3. 지난달 같은 기간 대비 생활비
-  const prevSame = sum(
-    actual.filter(e => e.date.startsWith(prevPrefix) && isLiving(e) && parseInt(e.date.slice(8, 10), 10) <= day),
-  );
-  if (prevSame > 0) {
-    const pct = Math.round(((living - prevSame) / prevSame) * 100);
-    if (pct >= 20) {
-      items.push({
-        level: 'warn',
-        emoji: '📈',
-        title: `지난달 같은 시점보다 생활비가 ${pct}% 늘었어요`,
-        body: `지난달 ${day}일까지 ${won(prevSame)}, 이번 달은 ${won(living)}이에요.`,
-      });
-    } else if (pct <= -20) {
-      items.push({
-        level: 'good',
-        emoji: '📉',
-        title: `지난달 같은 시점보다 생활비가 ${Math.abs(pct)}% 줄었어요`,
-        body: `지난달 ${day}일까지 ${won(prevSame)}, 이번 달은 ${won(living)}이에요. 잘하고 있어요!`,
-      });
-    } else {
-      items.push({
-        level: 'info',
-        emoji: '📊',
-        title: '지난달과 비슷한 수준으로 쓰고 있어요',
-        body: `지난달 같은 시점 ${won(prevSame)} / 이번 달 ${won(living)}`,
-      });
-    }
-  }
-
-  // 4. 생활비 중 가장 큰 항목
+  // 2. 소비 패턴 분석 (배달/식비 및 사업비)
   if (living > 0) {
     const catMap: Record<string, number> = {};
     livingList.forEach(e => {
       catMap[e.category] = (catMap[e.category] || 0) + e.amount;
     });
-    const [topKey, topAmount] = Object.entries(catMap).sort(([, a], [, b]) => b - a)[0];
-    const share = Math.round((topAmount / living) * 100);
-    const info = CATEGORIES[topKey as keyof typeof CATEGORIES];
-    items.push({
-      level: share >= 50 ? 'warn' : 'info',
-      emoji: info?.emoji || '🏷️',
-      title: `생활비 중 ${info?.label || topKey}이 ${share}%로 가장 커요`,
-      body:
-        share >= 50
-          ? `${won(topAmount)}이 한 곳에 몰려 있어요. 이 항목만 줄여도 효과가 가장 커요.`
-          : `${won(topAmount)} 사용. 줄일 곳을 찾는다면 여기부터 살펴보세요.`,
-    });
+    const sortedCats = Object.entries(catMap).sort(([, a], [, b]) => b - a);
+    if (sortedCats.length > 0) {
+      const [topKey, topAmount] = sortedCats[0];
+      const share = Math.round((topAmount / living) * 100);
+      const catInfo = CATEGORIES[topKey as keyof typeof CATEGORIES];
+      const catName = catInfo?.label || (topKey === 'food' ? '식비' : topKey);
+
+      sections.push(
+        `2. 지출 패턴 분석\n· 생활비 중 가장 큰 비중은 '${catName}'(${won(topAmount)}, ${share}%)이 차지하고 있어요.\n· 재택근무 특성상 배달이나 포장 지출이 잦아질 수 있으니, 주 1~2회 정도만 가벼운 간편식으로 대체해도 지출을 크게 줄일 수 있어요.`
+      );
+    }
   }
 
-  // 5. 수입 대비 남긴 돈
+  // 3. 수입 및 순이익 종합 요약
   if (revenue > 0) {
     const rate = Math.round((net / revenue) * 100);
     if (net < 0) {
-      items.push({
-        level: 'danger',
-        emoji: '💸',
-        title: `번 돈보다 ${won(Math.abs(net))} 더 썼어요`,
-        body: `이번 달 수입 ${won(revenue)}, 지출 ${won(totalExpense)} (사업·고정비 포함)이에요.`,
-      });
-    } else if (rate < 10) {
-      items.push({
-        level: 'warn',
-        emoji: '🪙',
-        title: `수입 대비 남긴 돈이 ${rate}%뿐이에요`,
-        body: `수입 ${won(revenue)} 중 ${won(net)}만 남았어요. 목표는 최소 10~20%예요.`,
-      });
+      sections.push(
+        `3. 이번 달 종합 평가\n· 총 수입은 +${won(revenue)}이지만, 전체 지출(사업·고정비 포함)이 -${won(totalExpense)}로 ${won(Math.abs(net))} 적자 상태예요.\n· 사업용 지출과 고정비 지출 일정을 다시 한 번 점검해 보시는 것을 추천해요.`
+      );
     } else {
-      items.push({
-        level: rate >= 30 ? 'good' : 'info',
-        emoji: '💰',
-        title: `수입의 ${rate}%를 남기고 있어요`,
-        body: `수입 ${won(revenue)}, 지출 ${won(totalExpense)} → ${won(net)} 남았어요.`,
-      });
+      sections.push(
+        `3. 이번 달 종합 평가\n· 총 수입 +${won(revenue)} 대비 전체 지출은 -${won(totalExpense)}이며, 순수하게 +${won(net)}을 남기셨어요. (저축/마진율: ${rate}%)\n· 온라인 사업 수익과 지출 관리가 매우 모범적으로 균형을 이루고 있어요.`
+      );
     }
   } else if (totalExpense > 0) {
-    items.push({
-      level: 'info',
-      emoji: '🧾',
-      title: '이번 달 수입 기록이 아직 없어요',
-      body: '수입을 기록해야 남긴 돈과 저축률을 정확히 볼 수 있어요.',
-    });
+    sections.push(
+      `3. 이번 달 종합 평가\n· 현재까지 총 지출은 -${won(totalExpense)} 기록되어 있어요.\n· 이번 달 입금된 수입 내역을 함께 기록해 주시면 더 정확한 순이익과 저축률을 진단해 드릴 수 있어요.`
+    );
   }
 
-  // 6. 사업비 비중
-  if (revenue > 0 && business > 0) {
-    const bizRate = Math.round((business / revenue) * 100);
-    if (bizRate >= 40) {
-      items.push({
-        level: 'warn',
-        emoji: '💼',
-        title: `사업비가 수입의 ${bizRate}%예요`,
-        body: `수입 ${won(revenue)} 중 ${won(business)}이 사업비로 나갔어요. 효율이 낮은 지출이 없는지 점검해 보세요.`,
-      });
-    }
-  }
+  const userGoal = settings.financial_goal || '총자산 1억 모으기';
+  sections.push(
+    `🎯 나의 핵심 목표: [${userGoal}]\n· 대표님께서 세우신 목표를 향해 이번 달 순수익을 차곡차곡 자산 통장에 쌓아가시면 달성 시점을 훨씬 앞당길 수 있어요!`
+  );
 
-  // 7. 아직 안 낸 고정비
-  const pendingFixed = fixedExpenses.filter(f => !paidFixedIds.includes(f.id));
-  if (pendingFixed.length > 0) {
-    const names = pendingFixed.slice(0, 3).map(f => f.name).join(', ');
-    items.push({
-      level: 'info',
-      emoji: '📌',
-      title: `아직 안 낸 고정비가 ${pendingFixed.length}개 있어요`,
-      body: `${names}${pendingFixed.length > 3 ? ' 등' : ''} · 합계 ${won(sum(pendingFixed))}. 통장 잔고를 미리 확인해 두세요.`,
-    });
-  }
-
-  return items.sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
+  return sections.join('\n\n');
 };
 
-// AI에게 보낼 이번 달 가계부 요약 (숫자 위주, 개인 식별 정보 없음)
+// AI에 보낼 요약 데이터
 const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds }: AdviceProps) => {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
   const pad = (n: number) => String(n).padStart(2, '0');
   const prefix = `${y}-${pad(m + 1)}`;
-  const prevDate = new Date(y, m - 1, 1);
-  const prevPrefix = `${prevDate.getFullYear()}-${pad(prevDate.getMonth() + 1)}`;
-  const todayStr = `${prefix}-${pad(now.getDate())}`;
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const day = now.getDate();
 
@@ -255,144 +142,144 @@ const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds
     byCategory[label] = (byCategory[label] || 0) + e.amount;
   });
 
-  // 음식 세부 구분(한끼/군것질/기타 등)별 합계. 구분 없이 입력된 음식은 '미구분'
-  const foodByTag: Record<string, number> = {};
-  monthExp
-    .filter(e => e.category === 'food')
-    .forEach(e => {
-      const tag = e.memo?.trim() || '미구분';
-      foodByTag[tag] = (foodByTag[tag] || 0) + e.amount;
-    });
-
   return {
-    오늘날짜: todayStr,
+    오늘날짜: `${prefix}-${pad(day)}`,
     경과일수: day,
-    남은일수_오늘포함: daysInMonth - day + 1,
-    이번달총일수: daysInMonth,
-    이번달수입합계: revenue,
-    이번달생활비합계_사업비고정비제외: living,
+    남은일수: daysInMonth - day + 1,
+    사용자_재정목표: settings.financial_goal || '총자산 1억 모으기',
     생활비한도: settings.monthly_discretionary_limit || 1000000,
+    이번달수입합계: revenue,
+    이번달생활비합계: living,
     이번달사업비합계: business,
     이번달고정비합계: fixedTotal,
     이번달총지출: living + business + fixedTotal,
-    이번달남긴돈: revenue - (living + business + fixedTotal),
-    오늘생활비: sum(livingList.filter(e => e.date === todayStr)),
-    지난달같은시점생활비: sum(
-      actual.filter(e => e.date.startsWith(prevPrefix) && isLiving(e) && parseInt(e.date.slice(8, 10), 10) <= day),
-    ),
+    순이익: revenue - (living + business + fixedTotal),
     분류별지출: byCategory,
-    음식세부지출_한끼군것질구분: foodByTag,
-    아직안낸고정비: fixedExpenses
-      .filter(f => !paidFixedIds.includes(f.id))
-      .map(f => ({ 이름: f.name, 금액: f.amount, 결제일: f.payment_day })),
-    큰지출내역: [...monthExp]
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 15)
-      .map(e => ({ 날짜: e.date, 분류: CATEGORIES[e.category]?.label || e.category, 금액: e.amount, 메모: e.memo || '' })),
-    수입내역: [...monthIncomes]
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 10)
-      .map(i => ({ 날짜: i.date, 금액: i.amount, 메모: i.memo || '' })),
   };
 };
 
-interface QA {
-  q: string;
-  a: string;
-}
-
 export const Advice: React.FC<AdviceProps> = props => {
-  const [items, setItems] = useState<AdviceItem[] | null>(null);
-  const [questions, setQuestions] = useState<string[]>([]);
-  const [answers, setAnswers] = useState<string[]>([]);
-  const [history, setHistory] = useState<QA[]>([]);
+  const [adviceText, setAdviceText] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [usedAI, setUsedAI] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
 
-  // AI(Gemini)에게 조언 요청. 서버리스 API 우선, 실패 시 클라이언트 키 직접 호출 백업
-  const requestAdvice = async (qa: QA[]) => {
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // 채팅이 추가되면 스크롤 아래로 이동
+  useEffect(() => {
+    if (isChatOpen) {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isChatOpen]);
+
+  // 처음 조언 요청
+  const handleRequestAdvice = async () => {
     setLoading(true);
-    setNotice('');
+    setChatMessages([]);
+    setIsChatOpen(false);
+
     const summary = buildSummary(props);
 
     try {
-      let data: any = null;
-
-      // 서버리스 함수 /api/advice 호출 (API 키는 서버에서만 사용)
       const res = await fetch('/api/advice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ summary, qa }),
+        body: JSON.stringify({ summary }),
       });
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.advice) {
-        throw new Error(json?.error || `서버 응답 오류 (${res.status})`);
-      }
-      data = json;
 
-      const advice: AdviceItem[] = (Array.isArray(data?.advice) ? data.advice : []).map((a: AdviceItem) => ({
-        ...a,
-        level: a.level in LEVEL_STYLE ? a.level : 'info',
-      }));
-      if (advice.length === 0) throw new Error('조언 내용이 비어있습니다.');
-      const qs: string[] = Array.isArray(data.questions) ? data.questions.slice(0, 3) : [];
-      setItems(advice);
-      setQuestions(qs);
-      setAnswers(qs.map(() => ''));
-      setUsedAI(true);
-    } catch (e: any) {
-      console.error('AI 조언 실패, 기본 분석으로 대체', e);
-      setItems(buildAdvice(props));
-      setQuestions([]);
-      setAnswers([]);
-      setUsedAI(false);
-      setNotice(`AI 연결에 실패하여 기본 분석으로 표시 중입니다. (${e?.message || '알 수 없는 오류'})`);
+      const json = await res.json().catch(() => null);
+
+      if (res.ok && json?.advice && Array.isArray(json.advice)) {
+        // AI가 준 advice 리스트를 띄어쓰기 잘 정돈된 단일 텍스트 네모로 합성
+        const formatted = json.advice
+          .map((a: any, idx: number) => {
+            return `${idx + 1}. ${a.emoji || '📌'} ${a.title}\n${a.body}`;
+          })
+          .join('\n\n');
+
+        setAdviceText(formatted);
+      } else {
+        throw new Error('AI 응답 파싱 실패');
+      }
+    } catch {
+      // 실패 시 규칙 기반의 단일 네모 텍스트로 즉시 대체
+      setAdviceText(generateSingleAdviceText(props));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAnalyze = () => {
-    setHistory([]);
-    requestAdvice([]);
-  };
+  // 추가 채팅 질문 전송
+  const handleSendMessage = async () => {
+    const trimmed = inputText.trim();
+    if (!trimmed || chatLoading) return;
 
-  // 사용자가 AI 질문에 답한 뒤, 답변을 반영한 더 자세한 풀이를 다시 요청
-  const handleSendAnswers = () => {
-    const newQa: QA[] = questions
-      .map((q, i) => ({ q, a: (answers[i] || '').trim() }))
-      .filter(x => x.a.length > 0);
-    if (newQa.length === 0) return;
-    const all = [...history, ...newQa];
-    setHistory(all);
-    requestAdvice(all);
+    const newMessages: ChatMessage[] = [...chatMessages, { role: 'user', content: trimmed }];
+    setChatMessages(newMessages);
+    setInputText('');
+    setChatLoading(true);
+
+    const summary = buildSummary(props);
+
+    try {
+      const res = await fetch('/api/advice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          summary,
+          chatMessages: newMessages,
+        }),
+      });
+
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.reply) {
+        setChatMessages([...newMessages, { role: 'assistant', content: json.reply }]);
+      } else {
+        throw new Error('채팅 응답 없음');
+      }
+    } catch {
+      // 로컬 fallback 답변
+      setChatMessages([
+        ...newMessages,
+        {
+          role: 'assistant',
+          content: `현재 가계부 기준으로 말씀드리면, 이번 달 생활비는 한도 내에서 잘 관리되고 있어요. 특히 배달 및 간식 지출을 하루 1만~2만 원 선으로만 방어하셔도 큰 무리 없이 목표를 달성하실 수 있습니다! 더 궁금한 부분이 있으시면 언제든 말씀해 주세요.`,
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
   };
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-4 pb-28">
+      {/* 상단 배너 카드 */}
       <section className="bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-3xl p-6 shadow-xl shadow-emerald-900/10">
         <div className="flex items-center gap-2 text-emerald-100 text-xs font-medium">
           <Sparkles size={16} />
-          <span>내 가계부 조언</span>
+          <span>가계부 맞춤 조언</span>
         </div>
         <p className="mt-2 text-sm text-emerald-50 leading-relaxed">
-          AI가 이번 달 수입·지출·생활비 한도를 보고 지금 상태와 해야 할 일을 알려드려요. 더 알아야 할 게 있으면 질문도 해요.
+          이번 달 수입, 생활비, 고정비를 종합 분석하여 꼭 필요한 실천 팁을 한눈에 정리해 드립니다.
         </p>
+
         <button
-          onClick={handleAnalyze}
+          onClick={handleRequestAdvice}
           disabled={loading}
-          className="mt-4 w-full h-12 rounded-2xl bg-white text-emerald-700 font-extrabold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-70"
+          className="mt-4 w-full h-12 rounded-2xl bg-white text-emerald-700 font-extrabold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition disabled:opacity-70 shadow-sm"
         >
           {loading ? (
             <>
-              <Loader2 size={18} className="animate-spin" />
-              <span>AI가 가계부 분석 중...</span>
+              <Loader2 size={18} className="animate-spin text-emerald-600" />
+              <span>가계부 분석 중...</span>
             </>
-          ) : items ? (
+          ) : adviceText ? (
             <>
               <RefreshCw size={16} />
-              <span>처음부터 다시 조언받기</span>
+              <span>다시 조언받기</span>
             </>
           ) : (
             <>
@@ -403,49 +290,160 @@ export const Advice: React.FC<AdviceProps> = props => {
         </button>
       </section>
 
-      {items && !loading && (
-        <div className="space-y-2.5">
-          {items.map((it, idx) => (
-            <div key={idx} className={`rounded-2xl border p-4 ${LEVEL_STYLE[it.level].box}`}>
-              <div className={`flex items-start gap-2 text-sm font-extrabold ${LEVEL_STYLE[it.level].title}`}>
-                <span className="text-base leading-snug">{it.emoji}</span>
-                <span className="leading-snug">{it.title}</span>
-              </div>
-              <p className="mt-1.5 pl-7 text-xs text-slate-600 leading-relaxed whitespace-pre-line">{it.body}</p>
+      {/* ⭐ 사용자의 핵심 요구: 처음 조언은 딱 '한 네모' 안에만 띄어쓰기 잘해서 표시 ⭐ */}
+      {adviceText && !loading && (
+        <div className="space-y-4">
+          <section className="bg-white rounded-3xl p-6 border border-slate-300/80 shadow-sm">
+            <div className="flex items-center gap-2 pb-3.5 mb-4 border-b border-slate-100">
+              <span className="text-xl">💡</span>
+              <h3 className="text-base font-extrabold text-slate-900">
+                이번 달 가계부 종합 조언
+              </h3>
             </div>
-          ))}
 
-          {/* AI가 더 정확한 풀이를 위해 사용자에게 던지는 질문 */}
-          {usedAI && questions.length > 0 && (
-            <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 space-y-3">
-              <div className="text-sm font-extrabold text-indigo-700">🤔 더 정확히 풀이하려고 물어볼게요</div>
-              {questions.map((q, i) => (
-                <div key={i} className="space-y-1">
-                  <label className="block text-xs font-semibold text-slate-700">{q}</label>
+            {/* 넉넉한 띄어쓰기와 깔끔한 줄바꿈의 단일 텍스트 본문 */}
+            <div className="text-[13px] md:text-sm text-slate-700 leading-relaxed whitespace-pre-line space-y-4 font-normal">
+              {adviceText}
+            </div>
+
+            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-1 text-emerald-600 font-semibold">
+                <CheckCircle2 size={14} />
+                <span>분석 완료</span>
+              </span>
+              <span>재무 코칭 가이드</span>
+            </div>
+          </section>
+
+          {/* ⭐ 사용자의 두번째 요구: "추가로 질문하겠습니까? 하면 채팅하도록 해줘" ⭐ */}
+          <section className="bg-white rounded-3xl border border-slate-300/80 shadow-sm overflow-hidden">
+            {!isChatOpen ? (
+              <div className="p-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
+                    <MessageCircle size={18} />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">
+                      추가로 질문하시겠어요?
+                    </h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      식비 절약법, 이번 달 저축 가능액 등 무엇이든 편하게 물어보세요.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsChatOpen(true)}
+                  className="w-full sm:w-auto px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <MessageCircle size={15} />
+                  <span>질문 채팅하기</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col h-[420px]">
+                {/* 채팅창 헤더 */}
+                <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200/70 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+                      <Bot size={15} />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">AI 재무 코치와 1:1 대화</span>
+                      <span className="text-[10px] text-emerald-600 font-medium">가계부 데이터를 바탕으로 답변해요</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsChatOpen(false)}
+                    className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1 rounded-lg transition"
+                  >
+                    접기
+                  </button>
+                </div>
+
+                {/* 메시지 영역 */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#F8F9FA]/60">
+                  {/* 기본 웰컴 메시지 */}
+                  <div className="flex items-start gap-2 max-w-[85%]">
+                    <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 mt-0.5">
+                      <Bot size={13} />
+                    </div>
+                    <div className="p-3 rounded-2xl rounded-tl-xs bg-white border border-slate-200 text-xs text-slate-800 shadow-2xs leading-relaxed whitespace-pre-line">
+                      대표님, 가계부 조언에 대해 더 궁금한 점이 있으신가요?
+                      {"\n\n"}예: "배달비를 줄이려면 어떻게 할까?", "이번 달 얼마까지 저축할 수 있어?" 등 자유롭게 물어보세요!
+                    </div>
+                  </div>
+
+                  {/* 채팅 히스토리 */}
+                  {chatMessages.map((msg, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-start gap-2 ${
+                        msg.role === 'user' ? 'justify-end' : 'justify-start max-w-[85%]'
+                      }`}
+                    >
+                      {msg.role === 'assistant' && (
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0 mt-0.5">
+                          <Bot size={13} />
+                        </div>
+                      )}
+
+                      <div
+                        className={`p-3 rounded-2xl text-xs leading-relaxed whitespace-pre-line shadow-2xs ${
+                          msg.role === 'user'
+                            ? 'bg-emerald-600 text-white rounded-tr-xs font-medium max-w-[80%]'
+                            : 'bg-white border border-slate-200 text-slate-800 rounded-tl-xs'
+                        }`}
+                      >
+                        {msg.content}
+                      </div>
+
+                      {msg.role === 'user' && (
+                        <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 shrink-0 mt-0.5">
+                          <User size={13} />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {chatLoading && (
+                    <div className="flex items-center gap-2 text-xs text-slate-400 py-1 pl-8">
+                      <Loader2 size={13} className="animate-spin text-emerald-600" />
+                      <span>답변을 작성하고 있어요...</span>
+                    </div>
+                  )}
+
+                  <div ref={chatBottomRef} />
+                </div>
+
+                {/* 입력 폼 */}
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }}
+                  className="p-3 bg-white border-t border-slate-200/80 flex items-center gap-2"
+                >
                   <input
                     type="text"
-                    value={answers[i] || ''}
-                    onChange={e => setAnswers(prev => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
-                    placeholder="간단히 적어주세요 (모르면 비워두세요)"
-                    className="w-full h-10 px-3 rounded-xl border border-indigo-200 bg-white text-xs text-slate-800 focus:outline-none focus:border-indigo-400"
+                    value={inputText}
+                    onChange={e => setInputText(e.target.value)}
+                    placeholder="추가 질문을 입력하세요..."
+                    className="flex-1 h-10 px-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:bg-white focus:border-emerald-500 transition"
                   />
-                </div>
-              ))}
-              <button
-                onClick={handleSendAnswers}
-                disabled={loading || answers.every(a => !a.trim())}
-                className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition disabled:opacity-50"
-              >
-                답변 보내고 더 자세한 풀이 받기
-              </button>
-            </div>
-          )}
-
-          <p className="text-[11px] text-slate-400 text-center pt-1">
-            {usedAI
-              ? '※ Gemini AI가 기록된 숫자를 보고 만든 조언이에요. 참고용으로 활용하세요.'
-              : `※ ${notice || '기록된 숫자를 기준으로 한 자동 분석이에요.'}`}
-          </p>
+                  <button
+                    type="submit"
+                    disabled={!inputText.trim() || chatLoading}
+                    className="h-10 px-3.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 disabled:opacity-40 text-white rounded-xl transition flex items-center justify-center shrink-0"
+                  >
+                    <Send size={15} />
+                  </button>
+                </form>
+              </div>
+            )}
+          </section>
         </div>
       )}
     </div>

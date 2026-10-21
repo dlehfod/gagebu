@@ -78,6 +78,7 @@ export interface Settings {
   monthly_discretionary_limit: number; // 월 자유소비 한도 (기본 1,000,000)
   monthly_saving_goal: number; // 월 저축/남길돈 목표 (기본 3,000,000)
   asset_goal: number; // 1차 순자산 목표 (기본 50,000,000)
+  financial_goal?: string; // 사용자가 직접 적는 목표 (예: "총자산 1억 모으기")
 }
 
 export interface AssetAdjustment {

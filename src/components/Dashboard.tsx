@@ -13,7 +13,8 @@ import {
   ChevronRight,
   ChevronLeft,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Download
 } from 'lucide-react';
 import { EditModal } from './EditModal';
 
@@ -33,6 +34,7 @@ interface DashboardProps {
   onNavigateHistory?: () => void;
   onUpdateItem?: (data: any) => void;
   onDeleteItem?: (id: string, isExpense: boolean) => void;
+  onUpdateSettings?: (newSettings: Settings) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
@@ -51,7 +53,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateHistory,
   onUpdateItem,
   onDeleteItem,
+  onUpdateSettings,
 }) => {
+  // 목표 수정 모달 상태
+  const [isGoalEditOpen, setIsGoalEditOpen] = useState(false);
+  const [editGoalText, setEditGoalText] = useState(settings.financial_goal || '총자산 1억 모으기');
+
   // 전재산 수정 모달 상태
   const [isAssetEditOpen, setIsAssetEditOpen] = useState(false);
   const [editAssetAmount, setEditAssetAmount] = useState('');
@@ -191,15 +198,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // 선택된 특정 날짜 상태 (기본값: 오늘 현재 날짜)
   const [selectedPastDate, setSelectedPastDate] = useState<string>(todayStr);
-  // 전체 날짜 한 번에 보기 vs 특정 날짜 넘겨보기 모드
-  const [viewAllPastDates, setViewAllPastDates] = useState(false);
 
   // 하루 전으로 넘기기 (<)
   const handlePrevDay = () => {
     const cur = new Date(selectedPastDate);
     cur.setDate(cur.getDate() - 1);
     setSelectedPastDate(getLocalDateString(cur));
-    setViewAllPastDates(false);
   };
 
   // 하루 뒤로 넘기기 (>)
@@ -209,7 +213,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
     const nextStr = getLocalDateString(cur);
     if (nextStr <= todayStr) {
       setSelectedPastDate(nextStr);
-      setViewAllPastDates(false);
     }
   };
 
@@ -219,6 +222,57 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const selectedDateExpenses = selectedDateItems.filter((it): it is (Expense & { isExpense: true }) => it.isExpense);
   const selectedDateIncome = selectedDateIncomes.reduce((s, it) => s + it.amount, 0);
   const selectedDateExpense = selectedDateExpenses.filter(it => !it.is_pending).reduce((s, it) => s + it.amount, 0);
+
+  // 과거 날짜 큰 범주별(수입, 음식, 물건, 유흥, 사업비 등) 합계 계산
+  const categorySummaryList = React.useMemo(() => {
+    const list: Array<{
+      key: string;
+      label: string;
+      emoji: string;
+      amount: number;
+      count: number;
+      isExpense: boolean;
+    }> = [];
+
+    // 1) 수입 범주
+    if (selectedDateIncomes.length > 0) {
+      list.push({
+        key: 'income',
+        label: '수입',
+        emoji: '💰',
+        amount: selectedDateIncome,
+        count: selectedDateIncomes.length,
+        isExpense: false,
+      });
+    }
+
+    // 2) 지출 범주별 그룹화
+    const expGrouped: Record<string, { amount: number; count: number }> = {};
+    for (const exp of selectedDateExpenses) {
+      const cat = exp.category || 'other';
+      if (!expGrouped[cat]) expGrouped[cat] = { amount: 0, count: 0 };
+      expGrouped[cat].amount += exp.amount;
+      expGrouped[cat].count += 1;
+    }
+
+    // 카테고리 순서 (음식, 물건, 유흥, 사업비, 고정비, 기타)
+    const expOrder = ['food', 'shopping', 'entertainment', 'business', 'fixed', 'other'] as const;
+    for (const catKey of expOrder) {
+      if (expGrouped[catKey] && expGrouped[catKey].amount > 0) {
+        const catInfo = CATEGORIES[catKey];
+        list.push({
+          key: catKey,
+          label: catInfo?.label || catKey,
+          emoji: catInfo?.emoji || '🏷️',
+          amount: expGrouped[catKey].amount,
+          count: expGrouped[catKey].count,
+          isExpense: true,
+        });
+      }
+    }
+
+    return list;
+  }, [selectedDateIncomes, selectedDateExpenses, selectedDateIncome]);
 
 
   // 선택된 달 번 돈 (수입 합계)
@@ -233,6 +287,19 @@ export const Dashboard: React.FC<DashboardProps> = ({
       onDirectUpdateNetWorth(parsed);
       setIsAssetEditOpen(false);
     }
+  };
+
+  // 내 목표 수정 저장
+  const handleSaveGoal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = editGoalText.trim();
+    if (trimmed && onUpdateSettings) {
+      onUpdateSettings({
+        ...settings,
+        financial_goal: trimmed,
+      });
+    }
+    setIsGoalEditOpen(false);
   };
 
   // 새 고정비 추가 저장
@@ -255,68 +322,175 @@ export const Dashboard: React.FC<DashboardProps> = ({
     }
   };
 
-  // 내역 목록 범주 구분용: 수입 → 각 지출 범주 순으로 묶고, 범주가 바뀌면 선 + 라벨 표시
-  const groupOrder: string[] = ['income', ...categoryOrder];
-  const groupKeyOf = (it: any): string => {
-    if (!it.isExpense) return 'income';
-    return groupOrder.includes(it.category) ? it.category : 'other';
+
+  // 모든 날짜 내역 텍스트(.txt) 다운로드 함수
+  const handleDownloadAllHistoryTxt = () => {
+    const allItems: Array<{
+      id: string;
+      date: string;
+      isExpense: boolean;
+      amount: number;
+      category?: string;
+      memo?: string;
+      is_pending?: boolean;
+    }> = [
+      ...incomes.map(i => ({
+        id: i.id,
+        date: i.date,
+        isExpense: false,
+        amount: i.amount,
+        memo: i.memo,
+      })),
+      ...expenses.map(e => ({
+        id: e.id,
+        date: e.date,
+        isExpense: true,
+        amount: e.amount,
+        category: e.category,
+        memo: e.memo,
+        is_pending: e.is_pending,
+      })),
+    ];
+
+    if (allItems.length === 0) {
+      alert('다운로드할 내역이 없습니다.');
+      return;
+    }
+
+    // 날짜별 내림차순 정렬 (최신 날짜 우선)
+    allItems.sort((a, b) => b.date.localeCompare(a.date));
+
+    // 날짜별 그룹화
+    const grouped: { [date: string]: typeof allItems } = {};
+    for (const item of allItems) {
+      if (!grouped[item.date]) grouped[item.date] = [];
+      grouped[item.date].push(item);
+    }
+
+    const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
+    const totalExpense = expenses.filter(e => !e.is_pending).reduce((s, e) => s + e.amount, 0);
+    const netProfit = totalIncome - totalExpense;
+
+    let txt = `=================================================\n`;
+    txt += `              이도영 가계부 전체 내역 리포트\n`;
+    txt += `=================================================\n`;
+    txt += `출력 일자: ${getLocalDateString()}\n`;
+    txt += `총 기록 건수: ${allItems.length}건\n`;
+    txt += `총 수입: +${totalIncome.toLocaleString()}원\n`;
+    txt += `총 지출: -${totalExpense.toLocaleString()}원\n`;
+    txt += `순 수익: ${netProfit >= 0 ? '+' : '-'}${Math.abs(netProfit).toLocaleString()}원\n`;
+    txt += `=================================================\n\n`;
+
+    for (const [dateStr, items] of Object.entries(grouped)) {
+      const dayIncome = items.filter(it => !it.isExpense).reduce((s, it) => s + it.amount, 0);
+      const dayExpense = items.filter(it => it.isExpense && !it.is_pending).reduce((s, it) => s + it.amount, 0);
+      const dayNet = dayIncome - dayExpense;
+
+      txt += `[${dateStr}]\n`;
+      for (const item of items) {
+        if (item.isExpense) {
+          const catInfo = item.category ? CATEGORIES[item.category as keyof typeof CATEGORIES] : null;
+          const catName = item.category === 'business' ? '사업비' : item.category === 'food' ? (catInfo?.label || '음식') : (catInfo?.label || '지출');
+          const memoText = item.memo ? ` (${item.memo})` : '';
+          const pendingText = item.is_pending ? ' [납부예정]' : '';
+          txt += `  - [지출] ${catName}${memoText}: -${item.amount.toLocaleString()}원${pendingText}\n`;
+        } else {
+          txt += `  + [수입] ${item.memo || '수입'}: +${item.amount.toLocaleString()}원\n`;
+        }
+      }
+      txt += `  ▶ 당일합계: 수입 +${dayIncome.toLocaleString()}원 | 지출 -${dayExpense.toLocaleString()}원 | 순수익 ${dayNet >= 0 ? '+' : '-'}${Math.abs(dayNet).toLocaleString()}원\n\n`;
+    }
+
+    const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `가계부_모든날짜내역_${getLocalDateString()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
-  const sortByGroup = <T,>(arr: T[]): T[] =>
-    [...arr].sort((a, b) => groupOrder.indexOf(groupKeyOf(a)) - groupOrder.indexOf(groupKeyOf(b)));
-  const groupLabelOf = (k: string): string => {
-    if (k === 'income') return '💰 수입';
-    const info = (CATEGORIES as any)[k];
-    return `${info?.emoji || '🏷️'} ${k === 'food' ? '식비' : info?.label || '기타'}`;
-  };
-  const renderGroupHeader = (label: string) => (
-    <div className="flex items-center gap-2 pt-3 pb-1">
-      <span className="text-[11px] font-bold text-slate-500 shrink-0">{label}</span>
-      <div className="flex-1 border-t border-slate-300" />
-    </div>
-  );
 
   return (
     <div className="space-y-4 md:space-y-5 pb-24 md:pb-12 max-w-2xl mx-auto">
-      {/* 0. 월 이동 네비게이터 (과거 달 / 다음 달 이동 화살표 & 달력) */}
-      <div className="flex items-center justify-between bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handlePrevMonth}
-            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 active:scale-95 transition"
-            title="이전 달 내역 보기 (과거로 이동)"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <div className="flex items-center gap-1.5 px-2">
-            <Calendar size={16} className="text-emerald-600 shrink-0" />
-            <span className="text-sm md:text-base font-extrabold text-slate-800 tracking-tight">
-              {selectedMonthLabel}
-            </span>
+      {/* 0. 월 이동 네비게이터 (모바일/PC 완벽 반응형 정렬) */}
+      <div className="bg-white p-3 sm:px-4 sm:py-2.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-2.5">
+        {/* 월 선택 컨트롤 (< 이전달 | 📅 2026년 10월 | 다음달 >) */}
+        <div className="flex items-center justify-between w-full sm:w-auto gap-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handlePrevMonth}
+              className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 active:scale-95 transition shrink-0"
+              title="이전 달 내역 보기 (과거로 이동)"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <div className="flex items-center gap-1.5 px-2 whitespace-nowrap">
+              <Calendar size={16} className="text-emerald-600 shrink-0" />
+              <span className="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight whitespace-nowrap">
+                {selectedMonthLabel}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleNextMonth}
+              className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 active:scale-95 transition shrink-0"
+              title="다음 달 내역 보기"
+            >
+              <ChevronRight size={18} />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleNextMonth}
-            className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 active:scale-95 transition"
-            title="다음 달 내역 보기"
-          >
-            <ChevronRight size={18} />
-          </button>
+
+          {/* 모바일 화면에서만 우측에 표시되는 이번달 뱃지/버튼 */}
+          <div className="sm:hidden">
+            {!isCurrentMonth ? (
+              <button
+                type="button"
+                onClick={handleResetToCurrentMonth}
+                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 active:scale-95 px-2.5 py-1 rounded-xl transition border border-emerald-200 whitespace-nowrap"
+              >
+                이번 달로
+              </button>
+            ) : (
+              <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-xl whitespace-nowrap">
+                이번 달
+              </span>
+            )}
+          </div>
         </div>
 
-        {!isCurrentMonth ? (
+        {/* 액션 버튼 그룹: PC에서는 우측 나열, 모바일에서는 하단에 안정감 있게 배치 */}
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+          {/* 모든 날짜 내역 텍스트 다운받기 버튼 */}
           <button
             type="button"
-            onClick={handleResetToCurrentMonth}
-            className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 active:scale-95 px-3 py-1 rounded-full transition border border-emerald-200"
+            onClick={handleDownloadAllHistoryTxt}
+            className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 active:scale-95 px-3 py-1.5 rounded-xl transition border border-slate-200/80 shadow-2xs whitespace-nowrap"
+            title="모든 날짜 내역을 텍스트(.txt) 파일로 다운로드"
           >
-            이번 달로
+            <Download size={13} className="text-emerald-600 shrink-0" />
+            <span>내역 텍스트 다운받기</span>
           </button>
-        ) : (
-          <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full">
-            이번 달
-          </span>
-        )}
+
+          {/* PC에서만 표시되는 이번달 뱃지/버튼 */}
+          <div className="hidden sm:block">
+            {!isCurrentMonth ? (
+              <button
+                type="button"
+                onClick={handleResetToCurrentMonth}
+                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 active:scale-95 px-3 py-1 rounded-xl transition border border-emerald-200 whitespace-nowrap"
+              >
+                이번 달로
+              </button>
+            ) : (
+              <span className="text-[11px] font-semibold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-xl whitespace-nowrap">
+                이번 달
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* 1. 내 전재산 카드 (목표 달성률 및 게이지 그래프 포함) */}
@@ -343,6 +517,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {netWorth.toLocaleString()}
           </span>
           <span className="ml-1.5 text-lg md:text-xl font-medium text-emerald-200">원</span>
+        </div>
+
+        {/* 내 목표 표시 및 수정 (클릭 시 직접 변경 가능) */}
+        <div className="mt-4 pt-3 border-t border-emerald-500/40 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-sm">🎯</span>
+            <span className="text-emerald-100 font-medium shrink-0">내 목표:</span>
+            <span className="font-extrabold text-white truncate">
+              {settings.financial_goal || '총자산 1억 모으기'}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setEditGoalText(settings.financial_goal || '총자산 1억 모으기');
+              setIsGoalEditOpen(true);
+            }}
+            className="text-[11px] bg-white/15 hover:bg-white/25 active:scale-95 px-2.5 py-1 rounded-lg text-emerald-100 hover:text-white font-semibold transition shrink-0 ml-2"
+          >
+            목표 변경
+          </button>
         </div>
       </section>
 
@@ -431,83 +626,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
       {/* 4. ⭐⭐⭐ [가장 중요] 오늘의 수입 & 오늘의 지출 내역 쭉 보이기 ⭐⭐⭐ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 4-1. 오늘의 수입 내역 (사주, 타로 등) */}
-        <section className="bg-white rounded-3xl p-4 md:p-5 border border-slate-300/80 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between -mx-1 px-3 py-3 rounded-2xl bg-emerald-50 border border-emerald-200">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="text-2xl">💰</span>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-black text-emerald-900">
-                    오늘의 순수익 <span className="text-[10px] font-semibold text-emerald-600">({todayIncomes.length}건)</span>
-                  </h3>
-                  <span className={`block text-2xl font-black tabular-nums leading-tight ${todayNetProfit >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                    {todayNetProfit > 0 ? `+${todayNetProfit.toLocaleString()}` : `${todayNetProfit.toLocaleString()}`}원
-                  </span>
-                </div>
-              </div>
-              <button
-                onClick={onOpenIncome}
-                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-xl transition flex items-center gap-1 active:scale-95"
-              >
-                <Plus size={13} />
-                <span>추가</span>
-              </button>
-            </div>
-
-            {/* 수입 항목 리스트 */}
-            <div className="mt-2.5 space-y-1.5 min-h-[100px]">
-              {todayIncomes.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center py-6 text-center text-xs text-slate-400">
-                  <span>오늘 수입 내역이 없습니다.</span>
-                </div>
-              ) : (
-                todayIncomes.map(item => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition group"
-                  >
-                    <div className="min-w-0 flex items-center gap-2">
-                      <span className="text-sm shrink-0">💰</span>
-                      <div className="min-w-0">
-                        <span className="text-xs md:text-sm font-bold text-slate-800 truncate block">
-                          {item.memo || '수입'}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          수입
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs md:text-sm font-extrabold text-emerald-600 tabular-nums">
-                        +{item.amount.toLocaleString()}원
-                      </span>
-                      <button
-                        onClick={() => setSelectedHistoryItem({ ...item, isExpense: false })}
-                        className="text-slate-400 hover:text-slate-600 p-0.5 rounded transition"
-                        title="수정"
-                      >
-                        <Edit2 size={12} />
-                      </button>
-                      {onDeleteItem && (
-                        <button
-                          onClick={() => onDeleteItem(item.id, false)}
-                          className="text-slate-300 hover:text-rose-500 p-0.5 rounded transition"
-                          title="삭제"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* 4-2. 오늘의 지출 내역 (식비, 머시기 등) */}
+        {/* 4-1. 오늘의 지출 내역 (식비, 머시기 등) */}
         <section className="bg-white rounded-3xl p-4 md:p-5 border border-slate-300/80 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between -mx-1 px-3 py-3 rounded-2xl bg-rose-50 border border-rose-200">
@@ -594,6 +713,82 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   );
                 })
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* 4-2. 오늘의 수입 내역 (사주, 타로 등) */}
+        <section className="bg-white rounded-3xl p-4 md:p-5 border border-slate-300/80 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between -mx-1 px-3 py-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="text-2xl">💰</span>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-emerald-900">
+                    오늘의 순수익 <span className="text-[10px] font-semibold text-emerald-600">({todayIncomes.length}건)</span>
+                  </h3>
+                  <span className={`block text-2xl font-black tabular-nums leading-tight ${todayNetProfit >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+                    {todayNetProfit > 0 ? `+${todayNetProfit.toLocaleString()}` : `${todayNetProfit.toLocaleString()}`}원
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={onOpenIncome}
+                className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-xl transition flex items-center gap-1 active:scale-95"
+              >
+                <Plus size={13} />
+                <span>추가</span>
+              </button>
+            </div>
+
+            {/* 수입 항목 리스트 */}
+            <div className="mt-2.5 space-y-1.5 min-h-[100px]">
+              {todayIncomes.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center py-6 text-center text-xs text-slate-400">
+                  <span>오늘 수입 내역이 없습니다.</span>
+                </div>
+              ) : (
+                todayIncomes.map(item => (
+                  <div
+                    key={item.id}
+                    className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50 hover:bg-slate-100/80 border border-slate-100 transition group"
+                  >
+                    <div className="min-w-0 flex items-center gap-2">
+                      <span className="text-sm shrink-0">💰</span>
+                      <div className="min-w-0">
+                        <span className="text-xs md:text-sm font-bold text-slate-800 truncate block">
+                          {item.memo || '수입'}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          수입
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs md:text-sm font-extrabold text-emerald-600 tabular-nums">
+                        +{item.amount.toLocaleString()}원
+                      </span>
+                      <button
+                        onClick={() => setSelectedHistoryItem({ ...item, isExpense: false })}
+                        className="text-slate-400 hover:text-slate-600 p-0.5 rounded transition"
+                        title="수정"
+                      >
+                        <Edit2 size={12} />
+                      </button>
+                      {onDeleteItem && (
+                        <button
+                          onClick={() => onDeleteItem(item.id, false)}
+                          className="text-slate-300 hover:text-rose-500 p-0.5 rounded transition"
+                          title="삭제"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -862,7 +1057,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </div>
       </section>
 
-      {/* 6. 과거 날짜별 지출/수입 내역 (오늘 제외 순수 과거 기록 — 기본 접힘, 클릭 시 펼침) */}
+      {/* 6. 과거 날짜별 내역 (큰 범주만 표시 — 물건 얼마, 유흥 얼마 등) */}
       <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-400/70 shadow-sm">
         <div 
           onClick={() => setIsPastHistoryOpen(!isPastHistoryOpen)}
@@ -906,7 +1101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* 펼쳤을 때만 내용 표시 */}
         {isPastHistoryOpen && (
           <div className="mt-4 pt-3 border-t border-slate-100 space-y-4">
-            {/* ★ 핵심: 과거 날짜 넘기기 컨트롤러 (< 이전 날 | 📅 달력 | 다음 날 >) ★ */}
+            {/* 날짜 넘기기 컨트롤러 (< 이전 날 | 📅 달력 | 다음 날 >) */}
             <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-50 border border-slate-200/80 rounded-2xl">
               <div className="flex items-center gap-1.5">
                 <button
@@ -932,7 +1127,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     onChange={(e) => {
                       if (e.target.value) {
                         setSelectedPastDate(e.target.value);
-                        setViewAllPastDates(false);
                       }
                     }}
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
@@ -955,219 +1149,126 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <ChevronRight size={16} />
                 </button>
               </div>
-
-              {/* 전체 날짜 모아보기 / 특정 날짜 모드 토글 */}
-              <button
-                type="button"
-                onClick={() => setViewAllPastDates(!viewAllPastDates)}
-                className={`text-xs px-2.5 py-1 rounded-xl font-bold transition border ${
-                  viewAllPastDates
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {viewAllPastDates ? '선택한 날짜만 보기' : '모든 날짜 펼쳐보기'}
-              </button>
             </div>
 
-            {/* 1) 특정 날짜 넘겨보기 모드 (!viewAllPastDates) */}
-            {!viewAllPastDates ? (
-              <div className="space-y-3">
-                {/* 하루 요약: 날짜 + 총수입(수입-지출 합산) */}
-                <div className="rounded-2xl bg-slate-50 border border-slate-200/70 px-4 py-3">
-                  <div className="flex items-center justify-between text-xs text-slate-500">
-                    <span className="font-bold text-slate-800 text-sm">{selectedPastDate}</span>
-                    <span>{selectedDateItems.length}건</span>
-                  </div>
-                  <div className="mt-1 flex items-baseline justify-between">
-                    <span className="text-xs font-semibold text-slate-500">
-                      {selectedPastDate === todayStr ? '오늘의 총수입' : '이날의 총수입'}
-                    </span>
-                    <span
-                      className={`text-xl font-black tabular-nums ${
-                        selectedDateIncome - selectedDateExpense >= 0 ? 'text-emerald-600' : 'text-rose-600'
-                      }`}
-                    >
-                      {selectedDateIncome - selectedDateExpense >= 0 ? '+' : '-'}
-                      {Math.abs(selectedDateIncome - selectedDateExpense).toLocaleString()}원
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-end gap-3 text-[11px] tabular-nums text-slate-500">
-                    <span>수입 <b className="text-emerald-600">+{selectedDateIncome.toLocaleString()}</b></span>
-                    <span>지출 <b className="text-slate-700">-{selectedDateExpense.toLocaleString()}</b></span>
-                  </div>
+            {/* 과거 날짜 내역: 사용자의 요청대로 큰 범주(카테고리 요약)만 표시 */}
+            <div className="space-y-3">
+              {/* 하루 요약: 날짜 + 총수입 / 총지출 / 순수익 */}
+              <div className="rounded-2xl bg-slate-50 border border-slate-200/70 px-4 py-3">
+                <div className="flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-bold text-slate-800 text-sm">{selectedPastDate}</span>
+                  <span>총 {selectedDateItems.length}건</span>
                 </div>
-
-                {selectedDateItems.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-slate-400">
-                    기록된 내역이 없습니다.
-                  </div>
-                ) : (
-                  <div>
-                    {sortByGroup(selectedDateItems).map((item, idx, arr) => {
-                      const gk = groupKeyOf(item);
-                      const showHead = idx === 0 || groupKeyOf(arr[idx - 1]) !== gk;
-                      const catInfo = item.isExpense && (item as any).category
-                        ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES]
-                        : null;
-                      return (
-                        <React.Fragment key={item.id}>
-                        {showHead && renderGroupHeader(groupLabelOf(gk))}
-                        <div className="flex items-center justify-between py-2 px-1">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-sm shrink-0">
-                              {item.isExpense ? (catInfo?.emoji || '🏷️') : '💰'}
-                            </span>
-                            <span className="text-xs font-semibold text-slate-800 truncate">
-                              {item.isExpense && (item as any).category === 'business'
-                                ? `사업비${item.memo ? ` (${item.memo})` : ''}`
-                                : item.isExpense && (item as any).category === 'food'
-                                  ? `음식${item.memo ? ` (${item.memo})` : ''}`
-                                  : (item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입'))}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span
-                              className={`text-xs md:text-sm font-bold tabular-nums ${
-                                item.isExpense ? 'text-slate-800' : 'text-emerald-600'
-                              }`}
-                            >
-                              {item.isExpense ? '-' : '+'}
-                              {item.amount.toLocaleString()}원
-                            </span>
-                            <button
-                              onClick={() => setSelectedHistoryItem(item)}
-                              className="text-slate-300 hover:text-slate-600 p-1 rounded transition"
-                              title="수정"
-                            >
-                              <Edit2 size={12} />
-                            </button>
-                            {onDeleteItem && (
-                              <button
-                                onClick={() => onDeleteItem(item.id, item.isExpense)}
-                                className="text-slate-300 hover:text-rose-500 p-1 rounded transition"
-                                title="삭제"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="mt-1 flex items-baseline justify-between">
+                  <span className="text-xs font-semibold text-slate-500">
+                    {selectedPastDate === todayStr ? '오늘의 순수익' : '이날의 순수익'}
+                  </span>
+                  <span
+                    className={`text-xl font-black tabular-nums ${
+                      selectedDateIncome - selectedDateExpense >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                    }`}
+                  >
+                    {selectedDateIncome - selectedDateExpense >= 0 ? '+' : '-'}
+                    {Math.abs(selectedDateIncome - selectedDateExpense).toLocaleString()}원
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-end gap-3 text-[11px] tabular-nums text-slate-500">
+                  <span>수입 <b className="text-emerald-600">+{selectedDateIncome.toLocaleString()}</b></span>
+                  <span>지출 <b className="text-slate-700">-{selectedDateExpense.toLocaleString()}</b></span>
+                </div>
               </div>
-            ) : (
-              /* 2) 모든 과거 날짜 펼쳐보기 모드 (viewAllPastDates) */
-              Object.keys(groupedPastByDate).length === 0 ? (
-                <div className="text-center py-6 text-xs text-slate-400 bg-slate-50 rounded-2xl">
-                  {isCurrentMonth ? '내역이 아직 없습니다.' : `${sMonth}월 내역이 아직 없습니다.`}
+
+              {/* 큰 범주별 요약 목록 (물건 얼마, 유흥 얼마, 음식 얼마, 수입 얼마 등) */}
+              {categorySummaryList.length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                  기록된 내역이 없습니다.
                 </div>
               ) : (
-                Object.entries(groupedPastByDate).map(([dateStr, items]) => {
-                  const dayIncome = items.filter(it => !it.isExpense).reduce((s, it) => s + it.amount, 0);
-                  const dayExpense = items.filter(it => it.isExpense && !(it as any).is_pending).reduce((s, it) => s + it.amount, 0);
-
-                  return (
-                    <div key={dateStr} className="space-y-1.5">
-                      <div className="flex flex-wrap items-center justify-between gap-1 text-xs px-1 pb-1 border-b border-slate-100">
-                        <span className="font-extrabold text-slate-800 text-xs md:text-sm">
-                          {dateStr}
-                        </span>
-                        <div className="flex items-center gap-2 text-xs tabular-nums">
-                          <span className="text-slate-600 font-medium">
-                            총수입 <strong className="text-emerald-600 font-bold">+{dayIncome.toLocaleString()}원</strong>
+                <div className="space-y-2">
+                  {categorySummaryList.map((cat) => (
+                    <div
+                      key={cat.key}
+                      className="flex items-center justify-between p-3 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 transition"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-lg shrink-0">{cat.emoji}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-slate-800">
+                            {cat.label}
                           </span>
-                          <span className="text-slate-300">|</span>
-                          <span className="text-slate-600 font-medium">
-                            총지출 <strong className="text-slate-900 font-bold">{dayExpense > 0 ? `-${dayExpense.toLocaleString()}원` : '0원'}</strong>
+                          <span className="text-xs text-slate-400 font-medium">
+                            ({cat.count}건)
                           </span>
                         </div>
                       </div>
 
-                      <div className="pt-0.5">
-                        {sortByGroup(items).map((item, idx, arr) => {
-                          const gk = groupKeyOf(item);
-                          const showHead = idx === 0 || groupKeyOf(arr[idx - 1]) !== gk;
-                          const catInfo = item.isExpense && (item as any).category 
-                            ? CATEGORIES[(item as any).category as keyof typeof CATEGORIES] 
-                            : null;
-
-                          return (
-                            <React.Fragment key={item.id}>
-                            {showHead && renderGroupHeader(groupLabelOf(gk))}
-                            <div
-                              className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-slate-50/70 hover:bg-slate-100/80 border border-slate-100 transition mb-1"
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <span className="text-sm shrink-0">
-                                  {item.isExpense ? (catInfo?.emoji || '🏷️') : '💰'}
-                                </span>
-                                <div className="min-w-0">
-                                  <div className="text-xs font-semibold text-slate-800 truncate">
-                                    {item.isExpense && (item as any).category === 'business'
-                                      ? '사업비'
-                                      : item.isExpense && (item as any).category === 'food'
-                                        ? (catInfo?.label || '음식')
-                                        : (item.memo || (item.isExpense ? catInfo?.label || '지출' : '수입'))}
-                                  </div>
-                                  <div className={`text-[10px] ${
-                                    item.isExpense && (item as any).category === 'business' && item.memo
-                                      ? 'text-blue-600 font-medium'
-                                      : item.isExpense && (item as any).category === 'food' && item.memo
-                                        ? 'text-amber-600 font-medium'
-                                        : 'text-slate-400'
-                                  }`}>
-                                    {item.isExpense && ((item as any).category === 'business' || (item as any).category === 'food') && item.memo
-                                      ? `(${item.memo})`
-                                      : (item.isExpense ? (catInfo?.label || '기타') : '수입')}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0">
-                                <span
-                                  className={`text-xs md:text-sm font-bold tabular-nums ${
-                                    item.isExpense ? 'text-slate-800' : 'text-emerald-600'
-                                  }`}
-                                >
-                                  {item.isExpense ? '-' : '+'}
-                                  {item.amount.toLocaleString()}원
-                                </span>
-                                <button
-                                  onClick={() => setSelectedHistoryItem(item)}
-                                  className="text-[11px] text-slate-400 hover:text-slate-600 px-1 py-0.5 rounded transition"
-                                  title="수정"
-                                >
-                                  <Edit2 size={12} />
-                                </button>
-                                {onDeleteItem && (
-                                  <button
-                                    onClick={() => onDeleteItem(item.id, item.isExpense)}
-                                    className="text-[11px] text-slate-300 hover:text-rose-500 px-1 py-0.5 rounded transition"
-                                    title="삭제"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                            </React.Fragment>
-                          );
-                        })}
-                      </div>
+                      <span
+                        className={`text-sm md:text-base font-extrabold tabular-nums ${
+                          cat.isExpense ? 'text-slate-800' : 'text-emerald-600'
+                        }`}
+                      >
+                        {cat.isExpense ? `-${cat.amount.toLocaleString()}원` : `+${cat.amount.toLocaleString()}원`}
+                      </span>
                     </div>
-                  );
-                })
-              )
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </section>
 
 
+
+      {/* 모달 0: 내 목표 수정 모달 */}
+      {isGoalEditOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+                <span>🎯 나의 재무 목표 설정</span>
+              </h4>
+              <button onClick={() => setIsGoalEditOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveGoal} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  이루고 싶은 핵심 목표 (자유롭게 입력)
+                </label>
+                <input
+                  type="text"
+                  value={editGoalText}
+                  onChange={e => setEditGoalText(e.target.value)}
+                  placeholder="예: 총자산 1억 모으기"
+                  className="w-full h-12 px-4 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                  autoFocus
+                  required
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  이 목표는 가계부 메인에 표시되며, AI 조언 시 핵심 목표로 자동 인식됩니다.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsGoalEditOpen(false)}
+                  className="h-11 rounded-xl bg-slate-100 text-slate-600 font-semibold text-xs transition hover:bg-slate-200"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-emerald-600 text-white font-bold text-xs transition hover:bg-emerald-700 shadow-sm"
+                >
+                  목표 저장
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* 모달 1: 전재산 수정 모달 */}
       {isAssetEditOpen && (

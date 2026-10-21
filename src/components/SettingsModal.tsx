@@ -10,11 +10,13 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }) => {
   const [limitStr, setLimitStr] = useState(String(settings.monthly_discretionary_limit || 1000000));
+  const [financialGoal, setFinancialGoal] = useState(settings.financial_goal || '총자산 1억 모으기');
   const [isSaved, setIsSaved] = useState(false);
 
   // settings props가 변경되거나 로드되었을 때 상태 동기화
   React.useEffect(() => {
     setLimitStr(String(settings.monthly_discretionary_limit || 1000000));
+    setFinancialGoal(settings.financial_goal || '총자산 1억 모으기');
   }, [settings]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -28,6 +30,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }
       monthly_discretionary_limit: cleanNum(limitStr, 1000000),
       monthly_saving_goal: settings.monthly_saving_goal || 0,
       asset_goal: settings.asset_goal,
+      financial_goal: financialGoal.trim() || '총자산 1억 모으기',
     });
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
@@ -63,6 +66,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }
           <ShieldCheck size={16} className="text-emerald-500" />
           예산 및 목표 설정
         </h3>
+
+        <div>
+          <label className="block text-xs font-semibold text-slate-600 mb-1.5 flex items-center justify-between">
+            <span>🎯 나의 핵심 목표 (AI 조언 시 반영)</span>
+            <span className="text-[10px] text-emerald-600 font-medium">자유롭게 적기</span>
+          </label>
+          <input
+            type="text"
+            value={financialGoal}
+            onChange={(e) => setFinancialGoal(e.target.value)}
+            placeholder="예: 총자산 1억 모으기"
+            className="w-full bg-[#F8FAFC] border border-slate-200 rounded-2xl p-3 text-sm font-bold text-slate-900 focus:outline-none focus:border-slate-400"
+          />
+          <p className="text-[11px] text-slate-400 mt-1">
+            이 목표는 가계부 상단에 표시되며, AI 맞춤 재무 조언을 받을 때 핵심 목표로 인식됩니다.
+          </p>
+        </div>
 
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1.5">

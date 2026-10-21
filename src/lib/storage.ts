@@ -19,7 +19,8 @@ const STORAGE_KEYS = {
 const DEFAULT_SETTINGS: Settings = {
   monthly_discretionary_limit: 1000000,
   monthly_saving_goal: 3000000,
-  asset_goal: 50000000,
+  asset_goal: 100000000,
+  financial_goal: '총자산 1억 모으기',
 };
 
 const DEFAULT_ASSETS: Asset[] = [

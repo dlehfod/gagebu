@@ -8,7 +8,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { Advice } from './components/Advice';
 import { ExpenseModal } from './components/ExpenseModal';
 import { IncomeModal } from './components/IncomeModal';
-import { Home, ReceiptText, PlusCircle, Landmark, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+import { Home, ReceiptText, Plus, Landmark, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'history' | 'assets' | 'advice' | 'settings'>('home');
@@ -437,6 +437,7 @@ export function App() {
               onNavigateHistory={() => setActiveTab('history')}
               onUpdateItem={handleUpdateItem}
               onDeleteItem={handleDeleteItem}
+              onUpdateSettings={handleSaveSettings}
             />
           )}
 
@@ -537,13 +538,13 @@ export function App() {
             {/* 중앙 + 입력 */}
             <button
               onClick={() => setIsQuickActionOpen(!isQuickActionOpen)}
-              className="flex flex-col items-center gap-0.5 w-14 transition"
+              className="flex flex-col items-center justify-center gap-1 w-14 transition active:scale-95 text-[#10B981]"
               aria-label="입력"
             >
-              <div className="w-10 h-10 -mt-3 rounded-full bg-[#10B981] flex items-center justify-center text-white transition active:scale-95 shadow-md shadow-emerald-500/25">
-                <PlusCircle size={22} />
+              <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center text-white shadow-xs">
+                <Plus size={18} strokeWidth={2.6} />
               </div>
-              <span className="text-[10px] font-semibold text-[#10B981]">입력</span>
+              <span className="text-[10px] font-bold text-[#10B981]">입력</span>
             </button>
 
             {([

@@ -10,20 +10,22 @@ const SYSTEM_PROMPT = `너는 한국 1인 기업가를 위한 친근하고 솔�
   * 사업 매출과 수입이 자동/비정기적으로 들어오는 구조임
 - 근무 환경: 24시간 거의 대부분 집에서 일하고 생활하는 순수 재택 환경
 - 식생활 패턴: 집에서 직접 요리하지 않고 주로 배달을 시켜먹거나 밖에서 사먹음 (식비가 배달팁/외식비 위주로 자주 발생함)
+- 사용자 핵심 목표: summary.사용자_재정목표 (예: "총자산 1억 모으기")
 - 재정 특성:
   * 개인 생활비와 사업비(서버비, 툴 구독, 마케팅 등), 고정비(월세 등)가 공존함
   * 사업비와 고정비는 순수 생활비(용돈 한도)에서 제외하고 따로 집계함
 
 [조언 시 필수 규칙]
-1. 위 사용자의 [재택근무 + 배달/외식 식습관 + 온라인 사업가]라는 특성을 완벽히 이해하고 조언에 자연스럽게 녹여내.
+1. 사용자의 핵심 목표(summary.사용자_재정목표, 예: "총자산 1억 모으기")를 반드시 인지하고, 이 목표를 달성할 수 있도록 이번 달 지출 통제와 저축/마진 관리를 목표와 연결지어 구체적인 솔루션을 제시해.
+2. 위 사용자의 [재택근무 + 배달/외식 식습관 + 온라인 사업가]라는 특성을 완벽히 이해하고 조언에 자연스럽게 녹여내.
    - 예: "하루종일 재택근무를 하시다 보니 배달이나 카페/간식 지출이 쉽게 늘어날 수 있어요", "자동 수입이 잘 들어오는 시기에 생활비 통장과 비상금을 어떻게 분리할지" 등
-2. 반드시 제공된 JSON 가계부 요약의 실제 숫자만 근거로 말하고, 없는 숫자는 절대 지어내지 마. 금액은 항상 '1,234,000원' 형태로 쉼표와 '원'을 붙여.
-3. '생활비'는 사업비·고정비를 뺀 지출이야. 생활비 한도 대비 남은 기간 동안 '하루 권장 식비/생활비', '월말 예상 사용액'을 구체적인 숫자로 계산해 줘.
-4. 조언은 4~6개로 구성해. 각 조언은 title(한 줄 핵심 요약)과 body(재택/배달 특성을 고려한 2~3문장의 구체적인 실천 제안)로 작성해. 말투는 친근하고 다정한 존댓말.
-5. level은 danger(위험/초과), warn(주의/위태), good(칭찬/안정), info(정보/팁) 중 하나를 쓰고 알맞은 emoji를 1개 붙여.
-6. 더 정확하고 날카로운 코칭을 위해 사용자에게 물어볼 핵심 질문이 있다면 questions에 1~3개 넣어줘. (예: 배달 지출 패턴, 사업 툴 구독료나 서버비 비중, 이번 달 목표 저축 등)
-7. 사용자의 이전 답변(answers)이 있다면 그 내용을 깊이 있게 반영해서 한 단계 더 들어간 실질적 풀이를 제공해.
-8. 투자 종목 추천이나 대출 권유 같은 금융상품 판매성 발언은 절대 하지 마.`;
+3. 반드시 제공된 JSON 가계부 요약의 실제 숫자만 근거로 말하고, 없는 숫자는 절대 지어내지 마. 금액은 항상 '1,234,000원' 형태로 쉼표와 '원'을 붙여.
+4. '생활비'는 사업비·고정비를 뺀 지출이야. 생활비 한도 대비 남은 기간 동안 '하루 권장 식비/생활비', '월말 예상 사용액'을 구체적인 숫자로 계산해 줘.
+5. 조언은 4~6개로 구성해. 각 조언은 title(한 줄 핵심 요약)과 body(재택/배달 특성 및 목표 달성을 고려한 2~3문장의 구체적인 실천 제안)로 작성해. 말투는 친근하고 다정한 존댓말.
+6. level은 danger(위험/초과), warn(주의/위태), good(칭찬/안정), info(정보/팁) 중 하나를 쓰고 알맞은 emoji를 1개 붙여.
+7. 더 정확하고 날카로운 코칭을 위해 사용자에게 물어볼 핵심 질문이 있다면 questions에 1~3개 넣어줘. (예: 배달 지출 패턴, 사업 툴 구독료나 서버비 비중, 이번 달 목표 저축 등)
+8. 사용자의 이전 답변(answers)이 있다면 그 내용을 깊이 있게 반영해서 한 단계 더 들어간 실질적 풀이를 제공해.
+9. 투자 종목 추천이나 대출 권유 같은 금융상품 판매성 발언은 절대 하지 마.`;
 
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
@@ -96,6 +98,55 @@ async function callGemini(summary: any, qa: { q: string; a: string }[], apiKey: 
   throw lastError || new Error('모든 Gemini 모델 호출에 실패했습니다.');
 }
 
+async function callGeminiChat(summary: any, chatMessages: { role: 'user' | 'assistant'; content: string }[], apiKey: string) {
+  const goal = summary?.사용자_재정목표 || '총자산 1억 모으기';
+  const contextText = `너는 한국 1인 기업가(43세, 미혼, 재택근무 기반 온라인 타로/사주 사업가, 배달/외식 위주)를 위한 친근하고 똑똑한 1:1 맞춤 재무 코치야.
+사용자의 최우선 핵심 목표는 [${goal}]이야. 대화할 때 사용자가 이 목표를 달성할 수 있도록 지출 관리, 저축, 사업 마진 등에 대해 항상 목표 관점에서 실질적인 솔루션을 제시하고 격려해줘.
+항상 다정하고 실용적인 존댓말로, 띄어쓰기와 문단 구분을 깔끔하게 해서 읽기 편하게 답변해줘.
+사용자의 가계부 요약 데이터(JSON):
+${JSON.stringify(summary, null, 2)}
+`;
+
+  const contents = [
+    { role: 'user', parts: [{ text: contextText }] },
+    { role: 'model', parts: [{ text: '네, 대표님의 이번 달 가계부 상황을 파악했습니다. 무엇이든 편하게 물어보세요!' }] },
+    ...chatMessages.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    })),
+  ];
+
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        body: JSON.stringify({
+          contents,
+          generationConfig: {
+            temperature: 0.7,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) continue;
+        const detail = await res.text();
+        throw new Error(`Gemini 채팅 실패 (${res.status}): ${detail.slice(0, 150)}`);
+      }
+
+      const data = await res.json();
+      const text: string = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || '';
+      return { reply: text };
+    } catch (err: any) {
+      if (err.message && err.message.includes('404')) continue;
+      throw err;
+    }
+  }
+
+  throw new Error('채팅 응답 생성에 실패했습니다.');
+}
+
 // Node.js 표준 Serverless Function 핸들러 (Vercel 기본값)
 export default async function handler(req: any, res: any) {
   // Web Request (Edge 런타임 호환)
@@ -115,6 +166,13 @@ export default async function handler(req: any, res: any) {
       return res.status(400).json({ error: '가계부 요약 데이터가 필요합니다.' });
     }
 
+    // 1) 추가 채팅 질문 요청인 경우
+    if (body.chatMessages && Array.isArray(body.chatMessages)) {
+      const chatResult = await callGeminiChat(body.summary, body.chatMessages, apiKey);
+      return res.status(200).json(chatResult);
+    }
+
+    // 2) 초기 종합 조언 요청인 경우
     const result = await callGemini(body.summary, body.qa || [], apiKey);
     return res.status(200).json(result);
   } catch (err: any) {
@@ -144,6 +202,14 @@ async function handleWebRequest(request: Request): Promise<Response> {
     if (!body?.summary) {
       return json({ error: '가계부 요약 데이터가 필요합니다.' }, 400);
     }
+
+    // 1) 추가 채팅 질문 요청인 경우
+    if (body.chatMessages && Array.isArray(body.chatMessages)) {
+      const chatResult = await callGeminiChat(body.summary, body.chatMessages, apiKey);
+      return json(chatResult);
+    }
+
+    // 2) 초기 종합 조언 요청인 경우
     const result = await callGemini(body.summary, body.qa || [], apiKey);
     return json(result);
   } catch (err: any) {
