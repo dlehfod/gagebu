@@ -8,7 +8,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { Advice } from './components/Advice';
 import { ExpenseModal } from './components/ExpenseModal';
 import { IncomeModal } from './components/IncomeModal';
-import { Home, ReceiptText, Plus, Landmark, Sparkles, Settings as SettingsIcon } from 'lucide-react';
+import { Home, ReceiptText, Landmark, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'history' | 'assets' | 'advice' | 'settings'>('home');
@@ -522,32 +522,6 @@ export function App() {
             {([
               ['home', '홈', Home],
               ['history', '내역', ReceiptText],
-            ] as const).map(([key, label, Icon]) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`flex flex-col items-center gap-1 w-14 transition ${
-                  activeTab === key ? 'text-[#10B981] font-bold' : 'text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                <Icon size={19} />
-                <span className="text-[10px] font-medium">{label}</span>
-              </button>
-            ))}
-
-            {/* 중앙 + 입력 */}
-            <button
-              onClick={() => setIsQuickActionOpen(!isQuickActionOpen)}
-              className="flex flex-col items-center justify-center gap-1 w-14 transition active:scale-95 text-[#10B981]"
-              aria-label="입력"
-            >
-              <div className="w-8 h-8 rounded-full bg-[#10B981] flex items-center justify-center text-white shadow-xs">
-                <Plus size={18} strokeWidth={2.6} />
-              </div>
-              <span className="text-[10px] font-bold text-[#10B981]">입력</span>
-            </button>
-
-            {([
               ['assets', '자산', Landmark],
               ['advice', '조언', Sparkles],
               ['settings', '설정', SettingsIcon],
