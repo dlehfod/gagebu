@@ -126,8 +126,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const todayNetProfit = todayRevenue - todaySpent;
 
   // 3. 고정비 계산 (이번 달)
-  const pendingFixedList = fixedExpenses.filter(f => !paidFixedIds.includes(f.id));
-  const paidFixedList = fixedExpenses.filter(f => paidFixedIds.includes(f.id));
+  const paidFixedStrSet = new Set(paidFixedIds.map(String));
+  const pendingFixedList = fixedExpenses.filter(f => !paidFixedStrSet.has(String(f.id)));
+  const paidFixedList = fixedExpenses.filter(f => paidFixedStrSet.has(String(f.id)));
   const paidFixedTotal = paidFixedList.reduce((sum, f) => sum + f.amount, 0);
 
   // 4. 선택된 달의 쓸 용돈 (고정비, 사업비 제외한 순수 생활 용돈 한도 100만원)

@@ -37,7 +37,7 @@ const generateSingleAdviceText = ({ incomes, expenses, settings, fixedExpenses, 
   const livingList = monthExp.filter(isLiving);
   const living = sum(livingList);
   const business = sum(monthExp.filter(e => e.category === 'business'));
-  const paidFixedTotal = sum(fixedExpenses.filter(f => paidFixedIds.includes(f.id)));
+  const paidFixedTotal = sum(fixedExpenses.filter(f => paidFixedIds.map(String).includes(String(f.id))));
   const fixedTotal = sum(monthExp.filter(e => e.category === 'fixed')) + paidFixedTotal;
   const totalExpense = living + business + fixedTotal;
   const revenue = sum(incomes.filter(i => i.date.startsWith(prefix)));
@@ -127,7 +127,7 @@ const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds
   const livingList = monthExp.filter(isLiving);
   const living = sum(livingList);
   const business = sum(monthExp.filter(e => e.category === 'business'));
-  const fixedPaid = sum(fixedExpenses.filter(f => paidFixedIds.includes(f.id)));
+  const fixedPaid = sum(fixedExpenses.filter(f => paidFixedIds.map(String).includes(String(f.id))));
   const fixedTotal = sum(monthExp.filter(e => e.category === 'fixed')) + fixedPaid;
   const monthIncomes = incomes.filter(i => i.date.startsWith(prefix));
   const revenue = sum(monthIncomes);
@@ -162,7 +162,7 @@ const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds
     고정비이름: f.name,
     금액: `${f.amount.toLocaleString()}원`,
     납부일: `${f.payment_day}일`,
-    납부완료여부: paidFixedIds.includes(f.id) ? '완료' : '미납(예정)',
+    납부완료여부: paidFixedIds.map(String).includes(String(f.id)) ? '완료' : '미납(예정)',
   }));
 
   return {

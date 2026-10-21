@@ -38,7 +38,7 @@ export function App() {
   const [paidFixedIds, setPaidFixedIds] = useState<string[]>(() => {
     try {
       const raw = localStorage.getItem(`app_paid_fixed_${currentMonthStr}`);
-      return raw ? JSON.parse(raw) : [];
+      return raw ? JSON.parse(raw).map(String) : [];
     } catch {
       return [];
     }
@@ -73,6 +73,19 @@ export function App() {
           await storageService.updateIncome(item.id, { date: todayStr });
         }
         loadedIncomes = await storageService.getIncomes();
+      }
+
+      // 고정비 납부 상태 로컬 동기화
+      try {
+        const rawPaid = localStorage.getItem(`app_paid_fixed_${currentMonthStr}`);
+        if (rawPaid) {
+          const parsed = JSON.parse(rawPaid);
+          if (Array.isArray(parsed)) {
+            setPaidFixedIds(parsed.map(String));
+          }
+        }
+      } catch {
+        // ignore
       }
 
       setAdjustments(loadedAdjustments);
@@ -234,7 +247,7 @@ export function App() {
     setFixedExpenses(prev => prev.filter(f => String(f.id) !== strId));
 
     // 2) 이미 낸 상태인 고정비를 삭제하는 경우, 차감되었던 금액을 전재산에 즉시 환원하고 납부목록에서 제외
-    if (paidFixedIds.includes(strId)) {
+    if (paidFixedIds.map(String).includes(strId)) {
       const targetFixed = fixedExpenses.find(f => String(f.id) === strId);
       const targetAsset = getDefaultAsset(assets);
       if (targetFixed && targetAsset) {
@@ -244,7 +257,7 @@ export function App() {
           amount: nextAmount,
         });
       }
-      const nextPaid = paidFixedIds.filter(pId => String(pId) !== strId);
+      const nextPaid = paidFixedIds.map(String).filter(pId => pId !== strId);
       setPaidFixedIds(nextPaid);
       localStorage.setItem(`app_paid_fixed_${currentMonthStr}`, JSON.stringify(nextPaid));
     }
@@ -260,7 +273,8 @@ export function App() {
 
   // 고정비 체크/해제 ("냈다!" 처리 -> 전재산에서만 차감/복원)
   const handleToggleFixedPaid = async (id: string, willBePaid: boolean) => {
-    const targetFixed = fixedExpenses.find(f => f.id === id);
+    const strId = String(id);
+    const targetFixed = fixedExpenses.find(f => String(f.id) === strId);
     if (!targetFixed) return;
 
     const targetAsset = getDefaultAsset(assets);
@@ -278,9 +292,10 @@ export function App() {
       }
     }
 
+    const currentPaidStrings = paidFixedIds.map(String);
     const nextPaid = willBePaid 
-      ? [...paidFixedIds, id] 
-      : paidFixedIds.filter(pId => pId !== id);
+      ? Array.from(new Set([...currentPaidStrings, strId]))
+      : currentPaidStrings.filter(pId => pId !== strId);
     
     setPaidFixedIds(nextPaid);
     localStorage.setItem(`app_paid_fixed_${currentMonthStr}`, JSON.stringify(nextPaid));
