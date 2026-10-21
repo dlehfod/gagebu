@@ -13,6 +13,7 @@ const STORAGE_KEYS = {
   FIXED_TAGS: 'app_fixed_tags',
   BUSINESS_TAGS: 'app_business_tags',
   FOOD_TAGS: 'app_food_tags',
+  ENTERTAINMENT_TAGS: 'app_entertainment_tags',
 };
 
 // 기본 샘플 데이터 (앱 최초 실행 시 즉시 시각적으로 확인할 수 있도록 기본값 제공)
@@ -38,6 +39,7 @@ const DEFAULT_FIXED_EXPENSES: FixedExpense[] = [
 const DEFAULT_FIXED_TAGS: string[] = ['통신비', '월세/관리비', '보험료', '구독료(OTT/음악)', '교통/주유'];
 const DEFAULT_BUSINESS_TAGS: string[] = ['광고비', '바이브코딩', '기타'];
 const DEFAULT_FOOD_TAGS: string[] = ['한끼', '군것질', '기타'];
+const DEFAULT_ENTERTAINMENT_TAGS: string[] = ['나이트', '어플', '여자', '차비', '기타'];
 
 export const storageService = {
   // === INCOMES ===
@@ -514,6 +516,41 @@ export const storageService = {
     const current = await this.getFoodTags();
     const updated = current.filter(t => t !== tag);
     localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  // === 유흥 구분 태그 (나이트, 어플, 여자, 차비, 기타 등) ===
+  async getEntertainmentTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.ENTERTAINMENT_TAGS);
+      if (!raw) {
+        localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(DEFAULT_ENTERTAINMENT_TAGS));
+        return DEFAULT_ENTERTAINMENT_TAGS;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+      localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(DEFAULT_ENTERTAINMENT_TAGS));
+      return DEFAULT_ENTERTAINMENT_TAGS;
+    } catch {
+      return DEFAULT_ENTERTAINMENT_TAGS;
+    }
+  },
+
+  async addEntertainmentTag(tag: string): Promise<string[]> {
+    const current = await this.getEntertainmentTags();
+    const cleanTag = tag.trim();
+    if (!cleanTag || current.includes(cleanTag)) return current;
+    const updated = [...current, cleanTag];
+    localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  async deleteEntertainmentTag(tag: string): Promise<string[]> {
+    const current = await this.getEntertainmentTags();
+    const updated = current.filter(t => t !== tag);
+    localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(updated));
     return updated;
   }
 };

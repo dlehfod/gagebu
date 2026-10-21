@@ -35,10 +35,16 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [isAddingFoodTag, setIsAddingFoodTag] = useState(false);
   const [newFoodTagInput, setNewFoodTagInput] = useState('');
 
+  // 유흥 구분 태그 상태 (나이트, 어플, 여자, 차비, 기타)
+  const [entertainmentTags, setEntertainmentTags] = useState<string[]>(['나이트', '어플', '여자', '차비', '기타']);
+  const [isAddingEntertainmentTag, setIsAddingEntertainmentTag] = useState(false);
+  const [newEntertainmentTagInput, setNewEntertainmentTagInput] = useState('');
+
   const modalRef = React.useRef<HTMLDivElement>(null);
   const businessSectionRef = React.useRef<HTMLDivElement>(null);
   const foodSectionRef = React.useRef<HTMLDivElement>(null);
   const fixedSectionRef = React.useRef<HTMLDivElement>(null);
+  const entertainmentSectionRef = React.useRef<HTMLDivElement>(null);
 
   const handleCategorySelect = (catKey: ExpenseCategory) => {
     setCategory(catKey);
@@ -49,6 +55,10 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     } else if (catKey === 'food') {
       setTimeout(() => {
         foodSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    } else if (catKey === 'entertainment') {
+      setTimeout(() => {
+        entertainmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 50);
     } else if (catKey === 'fixed') {
       setTimeout(() => {
@@ -64,6 +74,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     if (bTags && bTags.length > 0) setBusinessTags(bTags);
     const foTags = await storageService.getFoodTags();
     if (foTags && foTags.length > 0) setFoodTags(foTags);
+    const eTags = await storageService.getEntertainmentTags();
+    if (eTags && eTags.length > 0) setEntertainmentTags(eTags);
   };
 
   React.useEffect(() => {
@@ -82,6 +94,10 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
       } else if (defaultCategory === 'food') {
         setTimeout(() => {
           foodSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 120);
+      } else if (defaultCategory === 'entertainment') {
+        setTimeout(() => {
+          entertainmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 120);
       }
     }
@@ -132,6 +148,21 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const handleDeleteFoodTag = async (tagToDelete: string) => {
     const updated = await storageService.deleteFoodTag(tagToDelete);
     setFoodTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleAddEntertainmentTag = async () => {
+    if (!newEntertainmentTagInput.trim()) return;
+    const updated = await storageService.addEntertainmentTag(newEntertainmentTagInput.trim());
+    setEntertainmentTags(updated);
+    setMemo(newEntertainmentTagInput.trim());
+    setNewEntertainmentTagInput('');
+    setIsAddingEntertainmentTag(false);
+  };
+
+  const handleDeleteEntertainmentTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteEntertainmentTag(tagToDelete);
+    setEntertainmentTags(updated);
     if (memo === tagToDelete) setMemo('');
   };
 
@@ -379,6 +410,101 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                           e.stopPropagation();
                           if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
                             handleDeleteFoodTag(tag);
+                          }
+                        }}
+                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
+                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
+                        }`}
+                        title="구분 삭제"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 유흥 세부 구분 칩 (나이트, 어플, 여자, 차비, 기타 등) */}
+          {category === 'entertainment' && (
+            <div ref={entertainmentSectionRef} className="bg-purple-50/80 border border-purple-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <span className="font-bold text-purple-950 flex items-center gap-1.5">
+                  <span>🎮</span>
+                  <span>유흥 세부 구분 (터치하여 선택)</span>
+                </span>
+                {!isAddingEntertainmentTag && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingEntertainmentTag(true)}
+                    className="text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-white border border-purple-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                  >
+                    <Plus size={11} />
+                    <span>새 구분 만들기</span>
+                  </button>
+                )}
+              </div>
+
+              {/* 새 유흥 구분 직접 만들기 폼 */}
+              {isAddingEntertainmentTag && (
+                <div className="flex gap-1.5 pt-1">
+                  <input
+                    type="text"
+                    placeholder="새 구분 이름 (예: 모임, 술자리)"
+                    value={newEntertainmentTagInput}
+                    onChange={(e) => setNewEntertainmentTagInput(e.target.value)}
+                    className="flex-1 bg-white border border-purple-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-purple-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddEntertainmentTag();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddEntertainmentTag}
+                    className="px-2.5 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition"
+                  >
+                    추가
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingEntertainmentTag(false); setNewEntertainmentTagInput(''); }}
+                    className="px-2 py-1 bg-slate-200 text-slate-600 rounded-xl text-xs"
+                  >
+                    취소
+                  </button>
+                </div>
+              )}
+
+              {/* 유흥 태그 칩 목록 (나이트, 어플, 여자, 차비, 기타) */}
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {entertainmentTags.map((tag) => {
+                  const isSelected = memo === tag;
+                  return (
+                    <div
+                      key={tag}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition border cursor-pointer active:scale-95 ${
+                        isSelected
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-purple-200/70 hover:bg-purple-50/80'
+                      }`}
+                      onClick={() => {
+                        setMemo(isSelected ? '' : tag);
+                      }}
+                    >
+                      <span className="truncate">
+                        {tag}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
+                            handleDeleteEntertainmentTag(tag);
                           }
                         }}
                         className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
