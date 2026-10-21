@@ -129,7 +129,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const paidFixedStrSet = new Set(paidFixedIds.map(String));
   const pendingFixedList = fixedExpenses.filter(f => !paidFixedStrSet.has(String(f.id)));
   const paidFixedList = fixedExpenses.filter(f => paidFixedStrSet.has(String(f.id)));
+  const totalFixedAmount = fixedExpenses.reduce((sum, f) => sum + f.amount, 0);
   const paidFixedTotal = paidFixedList.reduce((sum, f) => sum + f.amount, 0);
+  const pendingFixedTotal = pendingFixedList.reduce((sum, f) => sum + f.amount, 0);
 
   // 4. 선택된 달의 쓸 용돈 (고정비, 사업비 제외한 순수 생활 용돈 한도 100만원)
   const monthlyAllowanceLimit = settings.monthly_discretionary_limit || 1000000;
@@ -1031,13 +1033,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
       {/* 5. 매달 나갈 고정비 체크리스트 (하단, 날짜별 위) */}
       <section className="bg-white rounded-3xl p-5 md:p-6 border border-slate-400/70 shadow-sm">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 gap-2">
-          <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
             <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-1.5 whitespace-nowrap">
               <span>📌 매달 고정비</span>
               <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full shrink-0">
                 {fixedExpenses.length}개
               </span>
             </h3>
+            <span className="text-xs md:text-sm font-extrabold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded-full whitespace-nowrap">
+              총 {totalFixedAmount.toLocaleString()}원
+            </span>
           </div>
           <button
             onClick={() => setIsAddFixedOpen(true)}
@@ -1047,6 +1052,36 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <span>추가</span>
           </button>
         </div>
+
+        {/* 고정비 납부 요약 바 */}
+        {fixedExpenses.length > 0 && (
+          <div className="mt-3.5 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/60 flex items-center justify-between gap-3">
+            <div>
+              <span className="text-[11px] font-semibold text-slate-500 block">고정비 총합</span>
+              <div className="flex items-baseline gap-0.5 mt-0.5">
+                <span className="text-base sm:text-lg font-black tabular-nums text-slate-900">
+                  {totalFixedAmount.toLocaleString()}
+                </span>
+                <span className="text-xs font-bold text-slate-500">원</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-right">
+              <div>
+                <span className="text-[10px] font-medium text-slate-400 block">납부 완료 ({paidFixedList.length})</span>
+                <span className="text-xs sm:text-sm font-bold text-emerald-600 tabular-nums">
+                  {paidFixedTotal.toLocaleString()}원
+                </span>
+              </div>
+              <div className="w-[1px] h-6 bg-slate-200 shrink-0" />
+              <div>
+                <span className="text-[10px] font-medium text-slate-400 block">남은 고정비 ({pendingFixedList.length})</span>
+                <span className="text-xs sm:text-sm font-bold text-slate-700 tabular-nums">
+                  {pendingFixedTotal.toLocaleString()}원
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 고정비 목록 */}
         <div className="mt-3.5 space-y-2">
