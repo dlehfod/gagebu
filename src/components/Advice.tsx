@@ -47,12 +47,13 @@ const generateSingleAdviceText = ({ incomes, expenses, settings, fixedExpenses, 
     return `📝 아직 이번 달 가계부 기록이 등록되지 않았어요.\n\n수입이나 지출을 몇 개 기록해 주시면, 대표님의 평소 소비 습관과 수입 흐름을 꼼꼼히 분석해서 꼭 맞는 재정 조언을 들려드릴게요.`;
   }
 
-  const sections: string[] = [];
+  const paragraphs: string[] = [];
+  const userGoal = settings.financial_goal || '총자산 1억 모으기';
 
-  // 1. 생활비 한도 및 잔여 현황
+  // 1. 생활비 및 현재 상황 진단
   if (living > limit) {
-    sections.push(
-      `1. 생활비 한도 상태\n· 이번 달 생활비 한도 ${won(limit)} 중 ${won(living)}을 사용하여, 한도를 ${won(living - limit)} 초과한 상태예요.\n· 남은 ${remainingDays}일 동안은 꼭 필요한 기본 식비 외의 지출은 최대한 멈추고 방어 모드로 운영하시는 것을 권장드려요.`
+    paragraphs.push(
+      `대표님, 이번 달 생활비 지출을 살펴보니 한도 ${won(limit)}보다 ${won(living - limit)}을 더 쓰신 상태예요. 이번 달이 아직 ${remainingDays}일 남아있으니, 당분간은 꼭 필요한 기본 식비 외에 배달이나 유흥 쪽 지출은 의식적으로 브레이크를 밟아주시는 것이 안전해요.`
     );
   } else {
     const remaining = limit - living;
@@ -60,17 +61,17 @@ const generateSingleAdviceText = ({ incomes, expenses, settings, fixedExpenses, 
     const projected = (living / Math.max(day, 1)) * daysInMonth;
 
     if (projected > limit) {
-      sections.push(
-        `1. 생활비 한도 상태 (주의)\n· 지금까지 생활비로 ${won(living)}을 사용하셨어요. (남은 생활비: ${won(remaining)})\n· 현재 지출 속도가 다소 빨라 이대로 유지되면 월말에 약 ${won(projected)}을 쓸 것으로 예상돼요.\n· 앞으로 남은 기간 동안 하루 평균 ${won(perDay)} 이하로 지출하시면 한도 안에서 안전하게 마무리할 수 있어요.`
+      paragraphs.push(
+        `대표님, 지금까지 이번 달 생활비로 총 ${won(living)}을 쓰셨고, 남은 한도는 ${won(remaining)}이에요. 현재 지출 페이스가 조금 빨라서 이대로 가면 월말에 약 ${won(projected)}까지 늘어날 수 있어요. 앞으로 남은 ${remainingDays}일 동안 하루 평균 ${won(perDay)} 안쪽으로만 조절해 주시면 한도를 안전하게 지키실 수 있어요.`
       );
     } else {
-      sections.push(
-        `1. 생활비 한도 상태 (안정)\n· 이번 달 생활비 한도 ${won(limit)} 중 ${won(living)}만 사용하여 아주 훌륭하게 아끼고 계세요.\n· 남은 생활비는 ${won(remaining)}이며, 남은 ${remainingDays}일 동안 하루 ${won(perDay)}까지 여유 있게 쓰셔도 안전해요.`
+      paragraphs.push(
+        `대표님, 이번 달 생활비 관리를 정말 훌륭하게 잘 해주고 계세요! 한도 ${won(limit)} 중 지금까지 ${won(living)}만 쓰셔서 남은 ${remainingDays}일 동안 하루 ${won(perDay)}까지 여유 있게 쓰실 수 있는 아주 안정적인 흐름이에요.`
       );
     }
   }
 
-  // 2. 소비 패턴 분석 (배달/식비 및 사업비)
+  // 2. 소비 내역 점검 (배달/식비, 유흥 등)
   if (living > 0) {
     const catMap: Record<string, number> = {};
     livingList.forEach(e => {
@@ -83,39 +84,34 @@ const generateSingleAdviceText = ({ incomes, expenses, settings, fixedExpenses, 
       const catInfo = CATEGORIES[topKey as keyof typeof CATEGORIES];
       const catName = catInfo?.label || (topKey === 'food' ? '식비' : topKey);
 
-      sections.push(
-        `2. 지출 패턴 분석\n· 생활비 중 가장 큰 비중은 '${catName}'(${won(topAmount)}, ${share}%)이 차지하고 있어요.\n· 재택근무 특성상 배달이나 포장 지출이 잦아질 수 있으니, 주 1~2회 정도만 가벼운 간편식으로 대체해도 지출을 크게 줄일 수 있어요.`
+      paragraphs.push(
+        `지출 내역을 자세히 들여다보면 '${catName}'에 가장 많은 ${won(topAmount)}(전체 생활비의 ${share}%)이 쓰였어요. 집에서 혼자 집중해서 일하시다 보면 배달이나 간편식 지출이 자연스럽게 잦아질 수 있는데, 주중에 1~2끼 정도만 가볍게 조절하셔도 지출 방어 효과가 꽤 클 거예요.`
       );
     }
   }
 
-  // 3. 수입 및 순이익 종합 요약
+  // 3. 수입 및 순익과 목표 연계
   if (revenue > 0) {
     const rate = Math.round((net / revenue) * 100);
     if (net < 0) {
-      sections.push(
-        `3. 이번 달 종합 평가\n· 총 수입은 +${won(revenue)}이지만, 전체 지출(사업·고정비 포함)이 -${won(totalExpense)}로 ${won(Math.abs(net))} 적자 상태예요.\n· 사업용 지출과 고정비 지출 일정을 다시 한 번 점검해 보시는 것을 추천해요.`
+      paragraphs.push(
+        `이번 달 들어온 수입은 +${won(revenue)}인데 반해, 고정비와 사업비를 포함한 총지출이 -${won(totalExpense)}로 ${won(Math.abs(net))} 적자 상태예요. 고정 지출이나 툴 구독료 등을 한 번 점검해 보시고, 타로 상담 예약이나 사주 웹 유입을 조금 더 끌어올려 마진을 플러스로 돌려놓는 전략이 필요해 보여요.`
       );
     } else {
-      sections.push(
-        `3. 이번 달 종합 평가\n· 총 수입 +${won(revenue)} 대비 전체 지출은 -${won(totalExpense)}이며, 순수하게 +${won(net)}을 남기셨어요. (저축/마진율: ${rate}%)\n· 온라인 사업 수익과 지출 관리가 매우 모범적으로 균형을 이루고 있어요.`
+      paragraphs.push(
+        `이번 달 사주 웹과 타로 상담 등으로 총 +${won(revenue)}의 수입을 만드셨고, 모든 지출을 다 빼고도 순수하게 +${won(net)}을 남기셨어요 (순이익률 ${rate}%). 수익과 지출 밸런스가 아주 건강하게 유지되고 있습니다.`
       );
     }
-  } else if (totalExpense > 0) {
-    sections.push(
-      `3. 이번 달 종합 평가\n· 현재까지 총 지출은 -${won(totalExpense)} 기록되어 있어요.\n· 이번 달 입금된 수입 내역을 함께 기록해 주시면 더 정확한 순이익과 저축률을 진단해 드릴 수 있어요.`
-    );
   }
 
-  const userGoal = settings.financial_goal || '총자산 1억 모으기';
-  sections.push(
-    `🎯 나의 핵심 목표: [${userGoal}]\n· 대표님께서 세우신 목표를 향해 이번 달 순수익을 차곡차곡 자산 통장에 쌓아가시면 달성 시점을 훨씬 앞당길 수 있어요!`
+  paragraphs.push(
+    `대표님의 최종 목표인 [${userGoal}]을 이루려면, 이렇게 매달 남는 순수익을 생활비 통장에 그대로 두지 마시고 별도의 자산/비상금 통장으로 즉시 분리해 두시는 것을 권해드려요. 작은 잉여 자금들이 모여 복리처럼 목표 달성을 훨씬 빠르게 앞당겨 줄 거예요!`
   );
 
-  return sections.join('\n\n');
+  return paragraphs.join('\n\n');
 };
 
-// AI에 보낼 요약 데이터
+// AI에 보낼 종합 데이터 (전체 상세 거래 내역 포함)
 const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds }: AdviceProps) => {
   const now = new Date();
   const y = now.getFullYear();
@@ -142,19 +138,49 @@ const buildSummary = ({ incomes, expenses, settings, fixedExpenses, paidFixedIds
     byCategory[label] = (byCategory[label] || 0) + e.amount;
   });
 
+  // 세세한 지출 상세 내역 (최신순)
+  const detailedExpenses = [...monthExp]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map(e => ({
+      날짜: e.date,
+      분류: CATEGORIES[e.category]?.label || e.category,
+      메모: e.memo || '(메모없음)',
+      금액: `${e.amount.toLocaleString()}원`,
+    }));
+
+  // 세세한 수입 상세 내역 (최신순)
+  const detailedIncomes = [...monthIncomes]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map(i => ({
+      날짜: i.date,
+      항목: i.memo || '수입',
+      금액: `${i.amount.toLocaleString()}원`,
+    }));
+
+  // 고정비 납부 상태
+  const fixedStatus = fixedExpenses.map(f => ({
+    고정비이름: f.name,
+    금액: `${f.amount.toLocaleString()}원`,
+    납부일: `${f.payment_day}일`,
+    납부완료여부: paidFixedIds.includes(f.id) ? '완료' : '미납(예정)',
+  }));
+
   return {
     오늘날짜: `${prefix}-${pad(day)}`,
-    경과일수: day,
-    남은일수: daysInMonth - day + 1,
+    경과일수: `${day}일 경과`,
+    남은일수: `${daysInMonth - day + 1}일 남음`,
     사용자_재정목표: settings.financial_goal || '총자산 1억 모으기',
-    생활비한도: settings.monthly_discretionary_limit || 1000000,
-    이번달수입합계: revenue,
-    이번달생활비합계: living,
-    이번달사업비합계: business,
-    이번달고정비합계: fixedTotal,
-    이번달총지출: living + business + fixedTotal,
-    순이익: revenue - (living + business + fixedTotal),
-    분류별지출: byCategory,
+    이번달_생활비_한도: `${(settings.monthly_discretionary_limit || 1000000).toLocaleString()}원`,
+    이번달_총수입: `${revenue.toLocaleString()}원`,
+    이번달_생활비지출: `${living.toLocaleString()}원`,
+    이번달_사업비지출: `${business.toLocaleString()}원`,
+    이번달_고정비지출: `${fixedTotal.toLocaleString()}원`,
+    이번달_총지출: `${(living + business + fixedTotal).toLocaleString()}원`,
+    이번달_순수익: `${(revenue - (living + business + fixedTotal)).toLocaleString()}원`,
+    카테고리별_지출합계: byCategory,
+    상세_지출_전체목록: detailedExpenses,
+    상세_수입_전체목록: detailedIncomes,
+    고정비_상태목록: fixedStatus,
   };
 };
 
@@ -192,14 +218,12 @@ export const Advice: React.FC<AdviceProps> = props => {
 
       const json = await res.json().catch(() => null);
 
-      if (res.ok && json?.advice && Array.isArray(json.advice)) {
-        // AI가 준 advice 리스트를 띄어쓰기 잘 정돈된 단일 텍스트 네모로 합성
+      if (res.ok && json?.adviceText) {
+        setAdviceText(json.adviceText);
+      } else if (res.ok && json?.advice && Array.isArray(json.advice)) {
         const formatted = json.advice
-          .map((a: any, idx: number) => {
-            return `${idx + 1}. ${a.emoji || '📌'} ${a.title}\n${a.body}`;
-          })
+          .map((a: any) => `${a.emoji || '📌'} ${a.title}\n${a.body}`)
           .join('\n\n');
-
         setAdviceText(formatted);
       } else {
         throw new Error('AI 응답 파싱 실패');
