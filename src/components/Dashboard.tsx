@@ -324,7 +324,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   };
 
 
-  // 모든 날짜 내역 텍스트(.txt) 다운로드 함수
+  // 내상황, 꿈/목표, 자산, 고정비, 전체 상세 내역이 포함된 AI 분석용 텍스트(.txt) 다운로드 함수
   const handleDownloadAllHistoryTxt = () => {
     const allItems: Array<{
       id: string;
@@ -353,8 +353,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
       })),
     ];
 
-    if (allItems.length === 0) {
-      alert('다운로드할 내역이 없습니다.');
+    if (allItems.length === 0 && assets.length === 0 && fixedExpenses.length === 0) {
+      alert('다운로드할 데이터가 없습니다.');
       return;
     }
 
@@ -368,20 +368,112 @@ export const Dashboard: React.FC<DashboardProps> = ({
       grouped[item.date].push(item);
     }
 
+    // 1. 재정 목표 및 설정
+    const dreamGoal = settings.financial_goal || '총자산 1억 모으기';
+    const assetGoal = settings.asset_goal || 50000000;
+    const monthlyLimit = settings.monthly_discretionary_limit || 1000000;
+    const savingGoal = settings.monthly_saving_goal || 0;
+
+    // 2. 자산 및 부채 현황
+    const assetItems = assets.filter(a => a.type === 'asset');
+    const debtItems = assets.filter(a => a.type === 'debt');
+    const totalAssets = assetItems.reduce((s, a) => s + a.amount, 0);
+    const totalDebt = debtItems.reduce((s, a) => s + a.amount, 0);
+    const netWorth = totalAssets - totalDebt;
+    const goalAchievementRate = assetGoal > 0 ? ((netWorth / assetGoal) * 100).toFixed(1) : '0';
+
+    // 3. 고정 지출 현황
+    const activeFixed = fixedExpenses.filter(f => f.active);
+    const totalFixedMonthly = activeFixed.reduce((s, f) => s + f.amount, 0);
+    const paidFixedList = activeFixed.filter(f => paidFixedIds.map(String).includes(String(f.id)));
+    const pendingFixedList = activeFixed.filter(f => !paidFixedIds.map(String).includes(String(f.id)));
+    const paidFixedAmount = paidFixedList.reduce((s, f) => s + f.amount, 0);
+    const pendingFixedAmount = pendingFixedList.reduce((s, f) => s + f.amount, 0);
+
+    // 4. 전체 수입 및 지출 합계
     const totalIncome = incomes.reduce((s, i) => s + i.amount, 0);
-    const totalExpense = expenses.filter(e => !e.is_pending).reduce((s, e) => s + e.amount, 0);
+    const actualExpenses = expenses.filter(e => !e.is_pending);
+    const totalExpense = actualExpenses.reduce((s, e) => s + e.amount, 0);
     const netProfit = totalIncome - totalExpense;
 
-    let txt = `=================================================\n`;
-    txt += `              이도영 가계부 전체 내역 리포트\n`;
-    txt += `=================================================\n`;
-    txt += `출력 일자: ${getLocalDateString()}\n`;
-    txt += `총 기록 건수: ${allItems.length}건\n`;
-    txt += `총 수입: +${totalIncome.toLocaleString()}원\n`;
-    txt += `총 지출: -${totalExpense.toLocaleString()}원\n`;
-    txt += `순 수익: ${netProfit >= 0 ? '+' : '-'}${Math.abs(netProfit).toLocaleString()}원\n`;
-    txt += `=================================================\n\n`;
+    // 카테고리별 누적 지출 집계
+    const catMap: Record<string, number> = {};
+    actualExpenses.forEach(e => {
+      catMap[e.category] = (catMap[e.category] || 0) + e.amount;
+    });
 
+    let txt = `================================================================================\n`;
+    txt += `[AI 재정 분석 및 자산 컨설팅 요청서]\n`;
+    txt += `※ 이 문서는 개인 가계부 및 자산 관리 앱에서 추출한 종합 금융 데이터입니다.\n`;
+    txt += `※ AI 역할: 1:1 맞춤형 전문 재무 컨설턴트 및 자산 관리 코치\n`;
+    txt += `※ AI 지시사항:\n`;
+    txt += `  1. 아래 제공된 사용자의 꿈/목표, 자산 현황, 고정 지출, 상세 거래 내역을 종합 분석해 주세요.\n`;
+    txt += `  2. [현재 재정 상태 진단] - 순자산, 흑자/적자 흐름, 불필요한 누수 지출을 짚어주세요.\n`;
+    txt += `  3. [꿈과 목표 달성 플랜] - 사용자의 핵심 목표 달성을 위한 구체적인 저축 및 소비 가이드라인을 제시해 주세요.\n`;
+    txt += `  4. [지출 최적화 팁] - 배달/외식, 구독료, 고정비 등 실천 가능한 절약 포인트를 알려주세요.\n`;
+    txt += `  5. 친절하고 명확하며 동기부여가 되는 어조로 피드백을 작성해 주세요.\n`;
+    txt += `================================================================================\n\n`;
+
+    txt += `■ [1. 내 상황 및 꿈 / 재정 목표]\n`;
+    txt += `  • 나의 꿈 / 핵심 목표: "${dreamGoal}"\n`;
+    txt += `  • 1차 순자산 달성 목표: ${assetGoal.toLocaleString()}원 (현재 달성률: ${goalAchievementRate}%)\n`;
+    txt += `  • 월 한 달 행복 소비(생활비) 한도: ${monthlyLimit.toLocaleString()}원\n`;
+    if (savingGoal > 0) {
+      txt += `  • 월 목표 저축액: ${savingGoal.toLocaleString()}원\n`;
+    }
+    txt += `  • 리포트 추출 기준일: ${getLocalDateString()}\n\n`;
+
+    txt += `■ [2. 현재 자산 및 부채 현황]\n`;
+    txt += `  • 총 자산: ${totalAssets.toLocaleString()}원\n`;
+    txt += `  • 총 부채(빚): ${totalDebt.toLocaleString()}원\n`;
+    txt += `  • 현재 순자산 (자산 - 부채): ${netWorth.toLocaleString()}원\n`;
+    if (assetItems.length > 0) {
+      txt += `  [보유 자산 세부내역]\n`;
+      assetItems.forEach(a => {
+        txt += `    - ${a.name}: +${a.amount.toLocaleString()}원\n`;
+      });
+    }
+    if (debtItems.length > 0) {
+      txt += `  [보유 부채 세부내역]\n`;
+      debtItems.forEach(d => {
+        txt += `    - ${d.name}: -${d.amount.toLocaleString()}원\n`;
+      });
+    }
+    txt += `\n`;
+
+    txt += `■ [3. 매월 나가는 정기 고정비 현황]\n`;
+    txt += `  • 월 고정 지출 총액: ${totalFixedMonthly.toLocaleString()}원\n`;
+    txt += `  • 이번 달 납부 완료: ${paidFixedAmount.toLocaleString()}원 (${paidFixedList.length}건)\n`;
+    txt += `  • 이번 달 납부 예정(미납): ${pendingFixedAmount.toLocaleString()}원 (${pendingFixedList.length}건)\n`;
+    if (activeFixed.length > 0) {
+      txt += `  [고정비 세부 목록]\n`;
+      activeFixed.forEach(f => {
+        const isPaid = paidFixedIds.map(String).includes(String(f.id));
+        txt += `    - ${f.name}: ${f.amount.toLocaleString()}원 (매월 ${f.payment_day}일) [${isPaid ? '이번달 납부완료' : '납부예정'}]\n`;
+      });
+    }
+    txt += `\n`;
+
+    txt += `■ [4. 전체 수입 및 지출 누적 통계]\n`;
+    txt += `  • 총 기록 건수: ${allItems.length}건 (수입 ${incomes.length}건, 지출 ${expenses.length}건)\n`;
+    txt += `  • 총 수입: +${totalIncome.toLocaleString()}원\n`;
+    txt += `  • 총 지출: -${totalExpense.toLocaleString()}원 (실제 결제 완료 기준)\n`;
+    txt += `  • 누적 순수익: ${netProfit >= 0 ? '+' : '-'}${Math.abs(netProfit).toLocaleString()}원\n`;
+    if (totalExpense > 0) {
+      txt += `  [카테고리별 누적 지출 및 비중]\n`;
+      Object.entries(catMap)
+        .sort(([, a], [, b]) => b - a)
+        .forEach(([catKey, amt]) => {
+          const catInfo = CATEGORIES[catKey as keyof typeof CATEGORIES];
+          const label = catInfo ? `${catInfo.emoji} ${catInfo.label}` : catKey;
+          const pct = ((amt / totalExpense) * 100).toFixed(1);
+          txt += `    - ${label}: ${amt.toLocaleString()}원 (${pct}%)\n`;
+        });
+    }
+    txt += `\n`;
+
+    txt += `■ [5. 일자별 상세 거래 내역 (최신순 전체 기록)]\n`;
+    txt += `--------------------------------------------------------------------------------\n`;
     for (const [dateStr, items] of Object.entries(grouped)) {
       const dayIncome = items.filter(it => !it.isExpense).reduce((s, it) => s + it.amount, 0);
       const dayExpense = items.filter(it => it.isExpense && !it.is_pending).reduce((s, it) => s + it.amount, 0);
@@ -391,7 +483,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
       for (const item of items) {
         if (item.isExpense) {
           const catInfo = item.category ? CATEGORIES[item.category as keyof typeof CATEGORIES] : null;
-          const catName = item.category === 'business' ? '사업비' : item.category === 'food' ? (catInfo?.label || '음식') : (catInfo?.label || '지출');
+          const catName = item.category === 'business' ? '💼 사업비' : catInfo ? `${catInfo.emoji} ${catInfo.label}` : '지출';
           const memoText = item.memo ? ` (${item.memo})` : '';
           const pendingText = item.is_pending ? ' [납부예정]' : '';
           txt += `  - [지출] ${catName}${memoText}: -${item.amount.toLocaleString()}원${pendingText}\n`;
@@ -401,12 +493,13 @@ export const Dashboard: React.FC<DashboardProps> = ({
       }
       txt += `  ▶ 당일합계: 수입 +${dayIncome.toLocaleString()}원 | 지출 -${dayExpense.toLocaleString()}원 | 순수익 ${dayNet >= 0 ? '+' : '-'}${Math.abs(dayNet).toLocaleString()}원\n\n`;
     }
+    txt += `================================================================================\n`;
 
     const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `가계부_모든날짜내역_${getLocalDateString()}.txt`;
+    a.download = `이도영_가계부_AI분석용_종합데이터_${getLocalDateString()}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -464,15 +557,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* 액션 버튼 그룹: PC에서는 우측 나열, 모바일에서는 하단에 안정감 있게 배치 */}
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-          {/* 모든 날짜 내역 텍스트 다운받기 버튼 */}
+          {/* AI 분석용 전체 내역 다운받기 버튼 */}
           <button
             type="button"
             onClick={handleDownloadAllHistoryTxt}
             className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 active:scale-95 px-3 py-1.5 rounded-xl transition border border-slate-200/80 shadow-2xs whitespace-nowrap"
-            title="모든 날짜 내역을 텍스트(.txt) 파일로 다운로드"
+            title="내 상황, 목표/꿈, 자산, 고정비, 전체 거래내역이 포함된 AI 분석용 텍스트 파일 다운로드"
           >
             <Download size={13} className="text-emerald-600 shrink-0" />
-            <span>내역 텍스트 다운받기</span>
+            <span>AI 분석용 내역 받기</span>
           </button>
 
           {/* PC에서만 표시되는 이번달 뱃지/버튼 */}
