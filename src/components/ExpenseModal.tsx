@@ -26,12 +26,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [newTagInput, setNewTagInput] = useState('');
 
   // 사업비 구분 태그 상태
-  const [businessTags, setBusinessTags] = useState<string[]>(['광고비', '바이브코딩', '기타']);
+  const [businessTags, setBusinessTags] = useState<string[]>(['광고비', '바이브코딩', '세금', '기타']);
   const [isAddingBusinessTag, setIsAddingBusinessTag] = useState(false);
   const [newBusinessTagInput, setNewBusinessTagInput] = useState('');
 
   // 음식 구분 태그 상태
-  const [foodTags, setFoodTags] = useState<string[]>(['한끼', '군것질', '기타']);
+  const [foodTags, setFoodTags] = useState<string[]>(['한끼', '군것질', '커피', '기타']);
   const [isAddingFoodTag, setIsAddingFoodTag] = useState(false);
   const [newFoodTagInput, setNewFoodTagInput] = useState('');
 
@@ -40,11 +40,17 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [isAddingEntertainmentTag, setIsAddingEntertainmentTag] = useState(false);
   const [newEntertainmentTagInput, setNewEntertainmentTagInput] = useState('');
 
+  // 물건 구분 태그 상태 (옷사기, 기타)
+  const [shoppingTags, setShoppingTags] = useState<string[]>(['옷사기', '기타']);
+  const [isAddingShoppingTag, setIsAddingShoppingTag] = useState(false);
+  const [newShoppingTagInput, setNewShoppingTagInput] = useState('');
+
   const modalRef = React.useRef<HTMLDivElement>(null);
   const businessSectionRef = React.useRef<HTMLDivElement>(null);
   const foodSectionRef = React.useRef<HTMLDivElement>(null);
   const fixedSectionRef = React.useRef<HTMLDivElement>(null);
   const entertainmentSectionRef = React.useRef<HTMLDivElement>(null);
+  const shoppingSectionRef = React.useRef<HTMLDivElement>(null);
 
   const handleCategorySelect = (catKey: ExpenseCategory) => {
     setCategory(catKey);
@@ -59,6 +65,10 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     } else if (catKey === 'entertainment') {
       setTimeout(() => {
         entertainmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    } else if (catKey === 'shopping') {
+      setTimeout(() => {
+        shoppingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       }, 50);
     } else if (catKey === 'fixed') {
       setTimeout(() => {
@@ -76,6 +86,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     if (foTags && foTags.length > 0) setFoodTags(foTags);
     const eTags = await storageService.getEntertainmentTags();
     if (eTags && eTags.length > 0) setEntertainmentTags(eTags);
+    const sTags = await storageService.getShoppingTags();
+    if (sTags && sTags.length > 0) setShoppingTags(sTags);
   };
 
   React.useEffect(() => {
@@ -98,6 +110,10 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
       } else if (defaultCategory === 'entertainment') {
         setTimeout(() => {
           entertainmentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 120);
+      } else if (defaultCategory === 'shopping') {
+        setTimeout(() => {
+          shoppingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }, 120);
       }
     }
@@ -163,6 +179,21 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const handleDeleteEntertainmentTag = async (tagToDelete: string) => {
     const updated = await storageService.deleteEntertainmentTag(tagToDelete);
     setEntertainmentTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleAddShoppingTag = async () => {
+    if (!newShoppingTagInput.trim()) return;
+    const updated = await storageService.addShoppingTag(newShoppingTagInput.trim());
+    setShoppingTags(updated);
+    setMemo(newShoppingTagInput.trim());
+    setNewShoppingTagInput('');
+    setIsAddingShoppingTag(false);
+  };
+
+  const handleDeleteShoppingTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteShoppingTag(tagToDelete);
+    setShoppingTags(updated);
     if (memo === tagToDelete) setMemo('');
   };
 
@@ -505,6 +536,101 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                           e.stopPropagation();
                           if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
                             handleDeleteEntertainmentTag(tag);
+                          }
+                        }}
+                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
+                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
+                        }`}
+                        title="구분 삭제"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 물건 세부 구분 칩 (옷사기, 기타 등) */}
+          {category === 'shopping' && (
+            <div ref={shoppingSectionRef} className="bg-rose-50/80 border border-rose-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <span className="font-bold text-rose-950 flex items-center gap-1.5">
+                  <span>🛍</span>
+                  <span>물건 세부 구분 (터치하여 선택)</span>
+                </span>
+                {!isAddingShoppingTag && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingShoppingTag(true)}
+                    className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-white border border-rose-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                  >
+                    <Plus size={11} />
+                    <span>새 구분 만들기</span>
+                  </button>
+                )}
+              </div>
+
+              {/* 새 물건 구분 직접 만들기 폼 */}
+              {isAddingShoppingTag && (
+                <div className="flex gap-1.5 pt-1">
+                  <input
+                    type="text"
+                    placeholder="새 구분 이름 (예: 생필품, 전자기기)"
+                    value={newShoppingTagInput}
+                    onChange={(e) => setNewShoppingTagInput(e.target.value)}
+                    className="flex-1 bg-white border border-rose-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-rose-500"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddShoppingTag();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddShoppingTag}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition"
+                  >
+                    추가
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsAddingShoppingTag(false); setNewShoppingTagInput(''); }}
+                    className="px-2 py-1 bg-slate-200 text-slate-600 rounded-xl text-xs"
+                  >
+                    취소
+                  </button>
+                </div>
+              )}
+
+              {/* 물건 태그 칩 목록 (옷사기, 기타) */}
+              <div className="flex flex-wrap gap-1.5 pt-0.5">
+                {shoppingTags.map((tag) => {
+                  const isSelected = memo === tag;
+                  return (
+                    <div
+                      key={tag}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition border cursor-pointer active:scale-95 ${
+                        isSelected
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-white text-slate-700 border-rose-200/70 hover:bg-rose-50/80'
+                      }`}
+                      onClick={() => {
+                        setMemo(isSelected ? '' : tag);
+                      }}
+                    >
+                      <span className="truncate">
+                        {tag}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
+                            handleDeleteShoppingTag(tag);
                           }
                         }}
                         className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${

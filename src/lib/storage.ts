@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   BUSINESS_TAGS: 'app_business_tags',
   FOOD_TAGS: 'app_food_tags',
   ENTERTAINMENT_TAGS: 'app_entertainment_tags',
+  SHOPPING_TAGS: 'app_shopping_tags',
 };
 
 // 기본 샘플 데이터 (앱 최초 실행 시 즉시 시각적으로 확인할 수 있도록 기본값 제공)
@@ -37,9 +38,10 @@ const DEFAULT_FIXED_EXPENSES: FixedExpense[] = [
 ];
 
 const DEFAULT_FIXED_TAGS: string[] = ['통신비', '월세/관리비', '보험료', '구독료(OTT/음악)', '교통/주유'];
-const DEFAULT_BUSINESS_TAGS: string[] = ['광고비', '바이브코딩', '기타'];
-const DEFAULT_FOOD_TAGS: string[] = ['한끼', '군것질', '기타'];
+const DEFAULT_BUSINESS_TAGS: string[] = ['광고비', '바이브코딩', '세금', '기타'];
+const DEFAULT_FOOD_TAGS: string[] = ['한끼', '군것질', '커피', '기타'];
 const DEFAULT_ENTERTAINMENT_TAGS: string[] = ['나이트', '어플', '여자', '차비', '기타'];
+const DEFAULT_SHOPPING_TAGS: string[] = ['옷사기', '기타'];
 
 export const storageService = {
   // === INCOMES ===
@@ -459,6 +461,12 @@ export const storageService = {
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        if (!parsed.includes('세금')) {
+          const etcIdx = parsed.indexOf('기타');
+          if (etcIdx >= 0) parsed.splice(etcIdx, 0, '세금');
+          else parsed.push('세금');
+          localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(parsed));
+        }
         return parsed;
       }
       localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
@@ -484,7 +492,7 @@ export const storageService = {
     return updated;
   },
 
-  // === 음식 구분 태그 (한끼, 군것질, 기타 등) ===
+  // === 음식 구분 태그 (한끼, 군것질, 커피, 기타 등) ===
   async getFoodTags(): Promise<string[]> {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.FOOD_TAGS);
@@ -494,6 +502,12 @@ export const storageService = {
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        if (!parsed.includes('커피')) {
+          const etcIdx = parsed.indexOf('기타');
+          if (etcIdx >= 0) parsed.splice(etcIdx, 0, '커피');
+          else parsed.push('커피');
+          localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(parsed));
+        }
         return parsed;
       }
       localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
@@ -551,6 +565,47 @@ export const storageService = {
     const current = await this.getEntertainmentTags();
     const updated = current.filter(t => t !== tag);
     localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  // === 물건 구분 태그 (옷사기, 기타 등) ===
+  async getShoppingTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SHOPPING_TAGS);
+      if (!raw) {
+        localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(DEFAULT_SHOPPING_TAGS));
+        return DEFAULT_SHOPPING_TAGS;
+      }
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        if (!parsed.includes('옷사기')) {
+          const etcIdx = parsed.indexOf('기타');
+          if (etcIdx >= 0) parsed.splice(etcIdx, 0, '옷사기');
+          else parsed.push('옷사기');
+          localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(parsed));
+        }
+        return parsed;
+      }
+      localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(DEFAULT_SHOPPING_TAGS));
+      return DEFAULT_SHOPPING_TAGS;
+    } catch {
+      return DEFAULT_SHOPPING_TAGS;
+    }
+  },
+
+  async addShoppingTag(tag: string): Promise<string[]> {
+    const current = await this.getShoppingTags();
+    const cleanTag = tag.trim();
+    if (!cleanTag || current.includes(cleanTag)) return current;
+    const updated = [...current, cleanTag];
+    localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  async deleteShoppingTag(tag: string): Promise<string[]> {
+    const current = await this.getShoppingTags();
+    const updated = current.filter(t => t !== tag);
+    localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(updated));
     return updated;
   }
 };
