@@ -733,7 +733,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <span>지출</span>
         </button>
         <button
-          onClick={onOpenIncome}
+          onClick={() => onOpenIncome()}
           className="h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-2xl transition shadow-xs shadow-emerald-600/20 flex items-center justify-center gap-1.5"
         >
           <Plus size={16} />
@@ -851,7 +851,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               </div>
               <button
-                onClick={onOpenIncome}
+                onClick={() => onOpenIncome()}
                 className="text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-xl transition flex items-center gap-1 active:scale-95"
               >
                 <Plus size={13} />
