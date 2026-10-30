@@ -6,18 +6,19 @@ interface IncomeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: { amount: number; memo?: string; date: string }) => void;
+  defaultDate?: string;
 }
 
-export const IncomeModal: React.FC<IncomeModalProps> = ({ isOpen, onClose, onSubmit }) => {
+export const IncomeModal: React.FC<IncomeModalProps> = ({ isOpen, onClose, onSubmit, defaultDate }) => {
   const [amountStr, setAmountStr] = useState('');
   const [memo, setMemo] = useState('');
-  const [date, setDate] = useState(() => getLocalDateString());
+  const [date, setDate] = useState(() => defaultDate || getLocalDateString());
 
   const modalRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     if (isOpen) {
-      setDate(getLocalDateString());
+      setDate(defaultDate || getLocalDateString());
       document.body.style.overflow = 'hidden';
       if (modalRef.current) {
         modalRef.current.scrollTop = 0;
@@ -26,7 +27,7 @@ export const IncomeModal: React.FC<IncomeModalProps> = ({ isOpen, onClose, onSub
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, defaultDate]);
 
   if (!isOpen) return null;
 

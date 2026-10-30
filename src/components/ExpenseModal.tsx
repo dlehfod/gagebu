@@ -8,14 +8,15 @@ interface ExpenseModalProps {
   onClose: () => void;
   onSubmit: (data: { amount: number; category: ExpenseCategory; memo?: string; date: string; is_pending?: boolean }) => void;
   defaultCategory?: ExpenseCategory;
+  defaultDate?: string;
 }
 
-export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onSubmit, defaultCategory = 'food' }) => {
+export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onSubmit, defaultCategory = 'food', defaultDate }) => {
   const [amountStr, setAmountStr] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>(defaultCategory);
   const [memo, setMemo] = useState('');
   const [showMemo, setShowMemo] = useState(false);
-  const [date, setDate] = useState(() => getLocalDateString());
+  const [date, setDate] = useState(() => defaultDate || getLocalDateString());
 
   // 고정비 상태 (납부 예정 vs 납부 완료)
   const [isPending, setIsPending] = useState(true);
@@ -93,7 +94,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   React.useEffect(() => {
     if (isOpen) {
       setCategory(defaultCategory);
-      setDate(getLocalDateString());
+      setDate(defaultDate || getLocalDateString());
+      setShowMemo(Boolean(defaultDate && defaultDate !== getLocalDateString()));
       loadTags();
       document.body.style.overflow = 'hidden';
       if (modalRef.current) {
@@ -120,7 +122,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, defaultCategory]);
+  }, [isOpen, defaultCategory, defaultDate]);
 
   const handleAddTag = async () => {
     if (!newTagInput.trim()) return;

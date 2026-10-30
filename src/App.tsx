@@ -29,7 +29,9 @@ export function App() {
 
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [expenseDefaultCategory, setExpenseDefaultCategory] = useState<any>('food');
+  const [expenseDefaultDate, setExpenseDefaultDate] = useState<string | undefined>(undefined);
   const [isIncomeModalOpen, setIsIncomeModalOpen] = useState(false);
+  const [incomeDefaultDate, setIncomeDefaultDate] = useState<string | undefined>(undefined);
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
 
   // 이번 달 고정비 납부 상태 관리
@@ -444,11 +446,15 @@ export function App() {
               onAddFixedExpense={handleAddFixedExpense}
               onDeleteFixedExpense={handleDeleteFixedExpense}
               onDirectUpdateNetWorth={handleDirectUpdateNetWorth}
-              onOpenExpense={(cat?: any) => {
+              onOpenExpense={(cat?: any, targetDate?: string) => {
                 setExpenseDefaultCategory(cat || 'food');
+                setExpenseDefaultDate(targetDate);
                 setIsExpenseModalOpen(true);
               }}
-              onOpenIncome={() => setIsIncomeModalOpen(true)}
+              onOpenIncome={(targetDate?: string) => {
+                setIncomeDefaultDate(targetDate);
+                setIsIncomeModalOpen(true);
+              }}
               onNavigateHistory={() => setActiveTab('history')}
               onUpdateItem={handleUpdateItem}
               onDeleteItem={handleDeleteItem}
@@ -558,16 +564,24 @@ export function App() {
         {/* 지출 모달 */}
         <ExpenseModal
           isOpen={isExpenseModalOpen}
-          onClose={() => setIsExpenseModalOpen(false)}
+          onClose={() => {
+            setIsExpenseModalOpen(false);
+            setExpenseDefaultDate(undefined);
+          }}
           onSubmit={handleAddExpense}
           defaultCategory={expenseDefaultCategory}
+          defaultDate={expenseDefaultDate}
         />
 
         {/* 수입 모달 */}
         <IncomeModal
           isOpen={isIncomeModalOpen}
-          onClose={() => setIsIncomeModalOpen(false)}
+          onClose={() => {
+            setIsIncomeModalOpen(false);
+            setIncomeDefaultDate(undefined);
+          }}
           onSubmit={handleAddIncome}
+          defaultDate={incomeDefaultDate}
         />
       </div>
     </div>

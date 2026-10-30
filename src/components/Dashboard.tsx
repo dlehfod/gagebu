@@ -29,8 +29,8 @@ interface DashboardProps {
   onAddFixedExpense?: (item: Omit<FixedExpense, 'id' | 'created_at'>) => void;
   onDeleteFixedExpense?: (id: string) => void;
   onDirectUpdateNetWorth: (newAmount: number) => void;
-  onOpenExpense: (category?: any) => void;
-  onOpenIncome: () => void;
+  onOpenExpense: (category?: any, date?: string) => void;
+  onOpenIncome: (date?: string) => void;
   onNavigateHistory?: () => void;
   onUpdateItem?: (data: any) => void;
   onDeleteItem?: (id: string, isExpense: boolean) => void;
@@ -1276,6 +1276,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 >
                   <span>다음 날</span>
                   <ChevronRight size={16} />
+                </button>
+              </div>
+
+              {/* 과거 해당 날짜에 지출/수입 직접 추가하는 버튼 */}
+              <div className="flex items-center gap-1.5 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => onOpenExpense(undefined, selectedPastDate)}
+                  className="px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition text-xs font-bold flex items-center gap-1 active:scale-95 shadow-2xs"
+                  title={`${selectedPastDate} 지출 기록`}
+                >
+                  <Plus size={13} />
+                  <span>이날 지출</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenIncome(selectedPastDate)}
+                  className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition text-xs font-bold flex items-center gap-1 active:scale-95 shadow-2xs"
+                  title={`${selectedPastDate} 수입 기록`}
+                >
+                  <Plus size={13} />
+                  <span>이날 수입</span>
                 </button>
               </div>
             </div>
