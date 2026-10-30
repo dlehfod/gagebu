@@ -14,12 +14,12 @@ export interface CategoryInfo {
 }
 
 export const CATEGORIES: Record<ExpenseCategory, CategoryInfo> = {
-  food: { label: '음식', emoji: '🍚', description: '식사, 배달, 카페, 간식, 편의점', isDiscretionary: true },
-  entertainment: { label: '유흥', emoji: '🎮', description: '술자리, 모임, 게임, 여행, 취미', isDiscretionary: true },
-  shopping: { label: '물건', emoji: '🛍', description: '쿠팡, 의류, 전자기기, 잡화', isDiscretionary: true },
+  food: { label: '생활필수', emoji: '🍚', description: '한끼, 장보기(반찬/김/참치), 생필품(물 등)', isDiscretionary: true },
+  entertainment: { label: '나쁜짓', emoji: '😈', description: '나이트, 차비, 여자만남, 어플, 군것질, 술값', isDiscretionary: true },
+  shopping: { label: '물건', emoji: '🛍', description: '옷, 기타물건, 잡화', isDiscretionary: true },
   fixed: { label: '고정비', emoji: '🏠', description: '월세, 통신비, 보험, 연금' },
-  business: { label: '사업비', emoji: '💼', description: '광고비, 서버비, 툴 구독, 외주' },
-  other: { label: '기타', emoji: '🚕', description: '교통, 병원, 약, 미용, 수리', isDiscretionary: true },
+  business: { label: '사업비', emoji: '💼', description: '광고비, 서버비, 바이브코딩, 세금' },
+  other: { label: '기타 자유소비', emoji: '🚕', description: '병원, 약, 교통, 미용, 기타', isDiscretionary: true },
 };
 
 export interface Income {

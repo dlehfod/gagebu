@@ -39,9 +39,9 @@ const DEFAULT_FIXED_EXPENSES: FixedExpense[] = [
 
 const DEFAULT_FIXED_TAGS: string[] = ['통신비', '월세/관리비', '보험료', '구독료(OTT/음악)', '교통/주유'];
 const DEFAULT_BUSINESS_TAGS: string[] = ['광고비', '바이브코딩', '세금', '기타'];
-const DEFAULT_FOOD_TAGS: string[] = ['한끼', '군것질', '커피', '기타'];
-const DEFAULT_ENTERTAINMENT_TAGS: string[] = ['나이트', '어플', '여자', '차비', '기타'];
-const DEFAULT_SHOPPING_TAGS: string[] = ['옷사기', '기타'];
+const DEFAULT_FOOD_TAGS: string[] = ['한끼', '장보기', '생필품', '기타'];
+const DEFAULT_ENTERTAINMENT_TAGS: string[] = ['나이트', '차비', '여자만남', '어플', '군것질', '술값', '기타'];
+const DEFAULT_SHOPPING_TAGS: string[] = ['옷', '기타물건'];
 
 export const storageService = {
   // === INCOMES ===
@@ -492,7 +492,7 @@ export const storageService = {
     return updated;
   },
 
-  // === 음식 구분 태그 (한끼, 군것질, 커피, 기타 등) ===
+  // === 생활필수 구분 태그 (한끼, 장보기, 생필품, 기타 등) ===
   async getFoodTags(): Promise<string[]> {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.FOOD_TAGS);
@@ -502,13 +502,18 @@ export const storageService = {
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        if (!parsed.includes('커피')) {
-          const etcIdx = parsed.indexOf('기타');
-          if (etcIdx >= 0) parsed.splice(etcIdx, 0, '커피');
-          else parsed.push('커피');
-          localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(parsed));
+        // 기존 '식대'가 있다면 '장보기'로 교체 또는 정리
+        const filtered = parsed.filter(item => item !== '식대');
+        const required = ['한끼', '장보기', '생필품'];
+        for (const item of required) {
+          if (!filtered.includes(item)) {
+            const etcIdx = filtered.indexOf('기타');
+            if (etcIdx >= 0) filtered.splice(etcIdx, 0, item);
+            else filtered.push(item);
+          }
         }
-        return parsed;
+        localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(filtered));
+        return filtered;
       }
       localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
       return DEFAULT_FOOD_TAGS;
@@ -533,7 +538,7 @@ export const storageService = {
     return updated;
   },
 
-  // === 유흥 구분 태그 (나이트, 어플, 여자, 차비, 기타 등) ===
+  // === 나쁜짓 구분 태그 (나이트, 차비, 여자만남, 어플, 군것질, 술값, 기타 등) ===
   async getEntertainmentTags(): Promise<string[]> {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.ENTERTAINMENT_TAGS);
@@ -543,6 +548,19 @@ export const storageService = {
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const required = ['나이트', '차비', '여자만남', '어플', '군것질', '술값'];
+        let updated = false;
+        for (const item of required) {
+          if (!parsed.includes(item)) {
+            const etcIdx = parsed.indexOf('기타');
+            if (etcIdx >= 0) parsed.splice(etcIdx, 0, item);
+            else parsed.push(item);
+            updated = true;
+          }
+        }
+        if (updated) {
+          localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(parsed));
+        }
         return parsed;
       }
       localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(DEFAULT_ENTERTAINMENT_TAGS));
@@ -568,7 +586,7 @@ export const storageService = {
     return updated;
   },
 
-  // === 물건 구분 태그 (옷사기, 기타 등) ===
+  // === 물건 구분 태그 (옷, 기타물건 등) ===
   async getShoppingTags(): Promise<string[]> {
     try {
       const raw = localStorage.getItem(STORAGE_KEYS.SHOPPING_TAGS);
@@ -578,10 +596,15 @@ export const storageService = {
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        if (!parsed.includes('옷사기')) {
-          const etcIdx = parsed.indexOf('기타');
-          if (etcIdx >= 0) parsed.splice(etcIdx, 0, '옷사기');
-          else parsed.push('옷사기');
+        const required = ['옷', '기타물건'];
+        let updated = false;
+        for (const item of required) {
+          if (!parsed.includes(item)) {
+            parsed.push(item);
+            updated = true;
+          }
+        }
+        if (updated) {
           localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(parsed));
         }
         return parsed;

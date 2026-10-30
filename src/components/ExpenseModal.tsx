@@ -30,18 +30,18 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [isAddingBusinessTag, setIsAddingBusinessTag] = useState(false);
   const [newBusinessTagInput, setNewBusinessTagInput] = useState('');
 
-  // 음식 구분 태그 상태
-  const [foodTags, setFoodTags] = useState<string[]>(['한끼', '군것질', '커피', '기타']);
+  // 생활필수 구분 태그 상태
+  const [foodTags, setFoodTags] = useState<string[]>(['한끼', '장보기', '생필품', '기타']);
   const [isAddingFoodTag, setIsAddingFoodTag] = useState(false);
   const [newFoodTagInput, setNewFoodTagInput] = useState('');
 
-  // 유흥 구분 태그 상태 (나이트, 어플, 여자, 차비, 기타)
-  const [entertainmentTags, setEntertainmentTags] = useState<string[]>(['나이트', '어플', '여자', '차비', '기타']);
+  // 나쁜짓 구분 태그 상태
+  const [entertainmentTags, setEntertainmentTags] = useState<string[]>(['나이트', '차비', '여자만남', '어플', '군것질', '술값', '기타']);
   const [isAddingEntertainmentTag, setIsAddingEntertainmentTag] = useState(false);
   const [newEntertainmentTagInput, setNewEntertainmentTagInput] = useState('');
 
-  // 물건 구분 태그 상태 (옷사기, 기타)
-  const [shoppingTags, setShoppingTags] = useState<string[]>(['옷사기', '기타']);
+  // 물건 구분 태그 상태 (옷, 기타물건)
+  const [shoppingTags, setShoppingTags] = useState<string[]>(['옷', '기타물건']);
   const [isAddingShoppingTag, setIsAddingShoppingTag] = useState(false);
   const [newShoppingTagInput, setNewShoppingTagInput] = useState('');
 
@@ -359,13 +359,13 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
             </div>
           </div>
 
-          {/* 음식(식비) 세부 구분 칩 및 직접 추가 기능 */}
+          {/* 생활필수 세부 구분 칩 및 직접 추가 기능 */}
           {category === 'food' && (
             <div ref={foodSectionRef} className="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
                 <span className="font-bold text-amber-950 flex items-center gap-1.5">
-                  <span>🍽️</span>
-                  <span>음식 세부 구분 (터치하여 선택)</span>
+                  <span>🍚</span>
+                  <span>생활필수 세부 구분 (터치하여 선택)</span>
                 </span>
                 {!isAddingFoodTag && (
                   <button
@@ -379,12 +379,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 )}
               </div>
 
-              {/* 새 음식 구분 직접 만들기 폼 */}
+              {/* 새 생활필수 구분 직접 만들기 폼 */}
               {isAddingFoodTag && (
                 <div className="flex gap-1.5 pt-1">
                   <input
                     type="text"
-                    placeholder="새 구분 이름 (예: 커피, 야식, 배달)"
+                    placeholder="새 구분 이름 (예: 한끼, 식대, 생필품)"
                     value={newFoodTagInput}
                     onChange={(e) => setNewFoodTagInput(e.target.value)}
                     className="flex-1 bg-white border border-amber-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-amber-500"
@@ -413,28 +413,25 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 </div>
               )}
 
-              {/* 음식 태그 칩 목록 */}
+              {/* 생활필수 태그 칩 목록 */}
               <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {foodTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
                     <div
                       key={tag}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold transition border ${
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition border cursor-pointer active:scale-95 ${
                         isSelected
                           ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                           : 'bg-white text-slate-700 border-amber-200/70 hover:bg-amber-50/80'
                       }`}
+                      onClick={() => {
+                        setMemo(isSelected ? '' : tag);
+                      }}
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMemo(isSelected ? '' : tag);
-                        }}
-                        className="truncate"
-                      >
+                      <span className="truncate">
                         {tag}
-                      </button>
+                      </span>
                       <button
                         type="button"
                         onClick={(e) => {
@@ -457,13 +454,13 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
             </div>
           )}
 
-          {/* 유흥 세부 구분 칩 (나이트, 어플, 여자, 차비, 기타 등) */}
+          {/* 나쁜짓 세부 구분 칩 (나이트, 차비, 여자만남, 어플, 군것질, 술값 등) */}
           {category === 'entertainment' && (
             <div ref={entertainmentSectionRef} className="bg-purple-50/80 border border-purple-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
                 <span className="font-bold text-purple-950 flex items-center gap-1.5">
-                  <span>🎮</span>
-                  <span>유흥 세부 구분 (터치하여 선택)</span>
+                  <span>😈</span>
+                  <span>나쁜짓 세부 구분 (터치하여 선택)</span>
                 </span>
                 {!isAddingEntertainmentTag && (
                   <button
@@ -477,12 +474,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 )}
               </div>
 
-              {/* 새 유흥 구분 직접 만들기 폼 */}
+              {/* 새 나쁜짓 구분 직접 만들기 폼 */}
               {isAddingEntertainmentTag && (
                 <div className="flex gap-1.5 pt-1">
                   <input
                     type="text"
-                    placeholder="새 구분 이름 (예: 모임, 술자리)"
+                    placeholder="새 구분 이름 (예: 나이트, 술값, 군것질)"
                     value={newEntertainmentTagInput}
                     onChange={(e) => setNewEntertainmentTagInput(e.target.value)}
                     className="flex-1 bg-white border border-purple-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-purple-500"
@@ -511,7 +508,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 </div>
               )}
 
-              {/* 유흥 태그 칩 목록 (나이트, 어플, 여자, 차비, 기타) */}
+              {/* 나쁜짓 태그 칩 목록 */}
               <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {entertainmentTags.map((tag) => {
                   const isSelected = memo === tag;
