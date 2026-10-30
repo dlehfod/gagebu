@@ -686,41 +686,62 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        {/* 이번달 총수입 (수입 - 지출 합산) */}
-        <div className="mt-3.5 pt-3.5 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-xs sm:text-sm font-extrabold text-slate-700">
-            {isCurrentMonth ? '이번달' : `${sMonth}월`} 총수입 <span className="text-[10px] font-medium text-slate-400">(수입 − 지출)</span>
-          </span>
-          <span
-            className={`text-lg sm:text-xl font-black tabular-nums ${
-              monthRevenue - targetMonthTotalExpense >= 0 ? 'text-emerald-600' : 'text-rose-500'
-            }`}
-          >
-            {monthRevenue - targetMonthTotalExpense >= 0 ? '+' : '-'}
-            {Math.abs(monthRevenue - targetMonthTotalExpense).toLocaleString()}원
-          </span>
+        {/* 이번달 총수입 (수입 - 지출 = 실제 남은 순수익) - 최우선 핵심 지표 강조 카드 */}
+        <div className="mt-4 pt-3.5 border-t border-slate-100">
+          <div className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-emerald-50 to-teal-50/50 border border-emerald-300/80 shadow-2xs">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white text-base font-black shadow-xs shrink-0">
+                ₩
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
+                    {isCurrentMonth ? '이번달' : `${sMonth}월`} 총순수익
+                  </span>
+                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded-md shrink-0">
+                    수입 − 지출
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 font-medium block truncate mt-0.5">
+                  내가 실제로 손에 쥔 알짜 돈
+                </span>
+              </div>
+            </div>
+
+            <div className="text-right shrink-0 pl-2">
+              <span
+                className={`text-xl sm:text-2xl font-black tabular-nums tracking-tight block ${
+                  monthRevenue - targetMonthTotalExpense >= 0 ? 'text-emerald-700' : 'text-rose-600'
+                }`}
+              >
+                {monthRevenue - targetMonthTotalExpense >= 0 ? '+' : '-'}
+                {Math.abs(monthRevenue - targetMonthTotalExpense).toLocaleString()}
+                <span className="text-xs sm:text-sm font-bold ml-0.5">원</span>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* 3. 수입 / 지출 초간편 입력 버튼 */}
       <div className="grid grid-cols-2 gap-2.5">
         <button
-          onClick={onOpenIncome}
-          className="h-11 bg-white hover:bg-slate-50 active:scale-[0.98] text-emerald-700 border border-emerald-200/90 font-bold text-sm rounded-2xl transition shadow-2xs flex items-center justify-center gap-1.5"
+          onClick={() => onOpenExpense('food')}
+          className="h-11 bg-rose-50 hover:bg-rose-100 active:scale-[0.98] text-rose-700 border border-rose-200/90 font-bold text-sm rounded-2xl transition shadow-2xs flex items-center justify-center gap-1.5"
         >
-          <Plus size={16} className="text-emerald-600" />
-          <span>수입</span>
+          <Minus size={16} className="text-rose-600" />
+          <span>지출</span>
         </button>
         <button
-          onClick={() => onOpenExpense('food')}
+          onClick={onOpenIncome}
           className="h-11 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold text-sm rounded-2xl transition shadow-xs shadow-emerald-600/20 flex items-center justify-center gap-1.5"
         >
-          <Minus size={16} />
-          <span>지출</span>
+          <Plus size={16} />
+          <span>수입</span>
         </button>
       </div>
 
-      {/* 4. ⭐⭐⭐ [가장 중요] 오늘의 수입 & 오늘의 지출 내역 쭉 보이기 ⭐⭐⭐ */}
+      {/* 4. ⭐⭐⭐ [가장 중요] 오늘의 지출 & 오늘의 수입 내역 쭉 보이기 ⭐⭐⭐ */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 4-1. 오늘의 지출 내역 (식비, 머시기 등) */}
         <section className="bg-white rounded-3xl p-4 md:p-5 border border-slate-300/80 shadow-sm flex flex-col justify-between">
@@ -822,10 +843,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-2xl">💰</span>
                 <div className="min-w-0">
                   <h3 className="text-sm font-black text-emerald-900">
-                    오늘의 순수익 <span className="text-[10px] font-semibold text-emerald-600">({todayIncomes.length}건)</span>
+                    오늘 번돈 (수입) <span className="text-[10px] font-semibold text-emerald-600">({todayIncomes.length}건)</span>
                   </h3>
-                  <span className={`block text-2xl font-black tabular-nums leading-tight ${todayNetProfit >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
-                    {todayNetProfit > 0 ? `+${todayNetProfit.toLocaleString()}` : `${todayNetProfit.toLocaleString()}`}원
+                  <span className="block text-2xl font-black text-emerald-600 tabular-nums leading-tight">
+                    {todayRevenue > 0 ? `+${todayRevenue.toLocaleString()}` : '0'}원
                   </span>
                 </div>
               </div>
@@ -887,6 +908,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 ))
               )}
             </div>
+          </div>
+
+          {/* 오늘 순수익 (수입 - 지출) 한줄 표시 */}
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="font-bold text-slate-500">오늘의 순수익 (수입 - 지출)</span>
+            <span className={`font-black tabular-nums ${todayNetProfit >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
+              {todayNetProfit > 0 ? `+${todayNetProfit.toLocaleString()}` : `${todayNetProfit.toLocaleString()}`}원
+            </span>
           </div>
         </section>
       </div>
