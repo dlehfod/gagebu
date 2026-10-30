@@ -469,6 +469,15 @@ export function App() {
               onUpdateItem={handleUpdateItem}
               onDeleteItem={handleDeleteItem}
               onToggleExpensePending={handleToggleExpensePending}
+              onOpenExpense={(cat?: any, targetDate?: string) => {
+                setExpenseDefaultCategory(cat || 'food');
+                setExpenseDefaultDate(targetDate);
+                setIsExpenseModalOpen(true);
+              }}
+              onOpenIncome={(targetDate?: string) => {
+                setIncomeDefaultDate(targetDate);
+                setIsIncomeModalOpen(true);
+              }}
             />
           )}
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { type Expense, type Income, CATEGORIES } from '../types';
 import { EditModal } from './EditModal';
-import { PieChart, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { PieChart, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Plus, Minus } from 'lucide-react';
 
 interface HistoryListProps {
   incomes: Income[];
@@ -9,6 +9,8 @@ interface HistoryListProps {
   onUpdateItem: (data: { id: string; amount: number; date: string; memo?: string; category?: any; isExpense: boolean; is_pending?: boolean }) => void;
   onDeleteItem: (id: string, isExpense: boolean) => void;
   onToggleExpensePending?: (id: string, is_pending: boolean) => void;
+  onOpenExpense?: (category?: any, date?: string) => void;
+  onOpenIncome?: (date?: string) => void;
 }
 
 export const HistoryList: React.FC<HistoryListProps> = ({
@@ -17,6 +19,8 @@ export const HistoryList: React.FC<HistoryListProps> = ({
   onUpdateItem,
   onDeleteItem,
   onToggleExpensePending,
+  onOpenExpense,
+  onOpenIncome,
 }) => {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
@@ -226,6 +230,38 @@ export const HistoryList: React.FC<HistoryListProps> = ({
           </div>
         </div>
 
+        {/* 내역 탭 상단 빠른 지출/수입 등록 버튼 */}
+        {(onOpenExpense || onOpenIncome) && (
+          <div className="mt-3.5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            {onOpenExpense && (
+              <button
+                type="button"
+                onClick={() => {
+                  const defaultTargetDate = isAllTime ? undefined : `${selectedMonth}-01`;
+                  onOpenExpense('food', defaultTargetDate);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition text-xs font-bold flex items-center gap-1 active:scale-95 shadow-2xs"
+              >
+                <Minus size={13} className="text-rose-600" />
+                <span>지출 추가</span>
+              </button>
+            )}
+            {onOpenIncome && (
+              <button
+                type="button"
+                onClick={() => {
+                  const defaultTargetDate = isAllTime ? undefined : `${selectedMonth}-01`;
+                  onOpenIncome(defaultTargetDate);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 transition text-xs font-bold flex items-center gap-1 active:scale-95 shadow-2xs"
+              >
+                <Plus size={13} className="text-emerald-600" />
+                <span>수입 추가</span>
+              </button>
+            )}
+          </div>
+        )}
+
         {totalPendingExpense > 0 && (
           <div className="mt-3 py-2 px-3 bg-amber-50/70 border border-amber-200/60 rounded-xl flex items-center justify-between text-xs">
             <div className="flex items-center gap-1.5 text-amber-800">
@@ -374,6 +410,31 @@ export const HistoryList: React.FC<HistoryListProps> = ({
                     <span className="text-amber-600 text-[11px] font-medium">
                       (예정 {dayPending.toLocaleString()}원)
                     </span>
+                  )}
+                  {/* 해당 날짜 바로 등록 버튼 */}
+                  {(onOpenExpense || onOpenIncome) && (
+                    <div className="flex items-center gap-1 ml-1.5 pl-1.5 border-l border-slate-200">
+                      {onOpenExpense && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenExpense('food', date)}
+                          className="px-1.5 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-[10px] transition"
+                          title={`${date} 지출 추가`}
+                        >
+                          +지출
+                        </button>
+                      )}
+                      {onOpenIncome && (
+                        <button
+                          type="button"
+                          onClick={() => onOpenIncome(date)}
+                          className="px-1.5 py-0.5 rounded bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold text-[10px] transition"
+                          title={`${date} 수입 추가`}
+                        >
+                          +수입
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

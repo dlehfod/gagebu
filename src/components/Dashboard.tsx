@@ -694,16 +694,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 ₩
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs sm:text-sm font-black text-slate-900 tracking-tight">
-                    {isCurrentMonth ? '이번달' : `${sMonth}월`} 총순수익
-                  </span>
-                  <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/90 px-1.5 py-0.5 rounded-md shrink-0">
-                    수입 − 지출
-                  </span>
-                </div>
+                <span className="text-xs sm:text-sm font-black text-slate-900 tracking-tight block">
+                  {isCurrentMonth ? '이번달' : `${sMonth}월`} 총순수익
+                </span>
                 <span className="text-[11px] text-slate-500 font-medium block truncate mt-0.5">
-                  내가 실제로 손에 쥔 알짜 돈
+                  (내가 실제로 손에 쥔 알짜 돈)
                 </span>
               </div>
             </div>

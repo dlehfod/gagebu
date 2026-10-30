@@ -133,12 +133,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     setIsAddingTag(false);
   };
 
-  const handleDeleteTag = async (tagToDelete: string) => {
-    const updated = await storageService.deleteFixedTag(tagToDelete);
-    setFixedTags(updated);
-    if (memo === tagToDelete) setMemo('');
-  };
-
   const handleAddBusinessTag = async () => {
     if (!newBusinessTagInput.trim()) return;
     const updated = await storageService.addBusinessTag(newBusinessTagInput.trim());
@@ -146,12 +140,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     setMemo(newBusinessTagInput.trim());
     setNewBusinessTagInput('');
     setIsAddingBusinessTag(false);
-  };
-
-  const handleDeleteBusinessTag = async (tagToDelete: string) => {
-    const updated = await storageService.deleteBusinessTag(tagToDelete);
-    setBusinessTags(updated);
-    if (memo === tagToDelete) setMemo('');
   };
 
   const handleAddFoodTag = async () => {
@@ -163,12 +151,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     setIsAddingFoodTag(false);
   };
 
-  const handleDeleteFoodTag = async (tagToDelete: string) => {
-    const updated = await storageService.deleteFoodTag(tagToDelete);
-    setFoodTags(updated);
-    if (memo === tagToDelete) setMemo('');
-  };
-
   const handleAddEntertainmentTag = async () => {
     if (!newEntertainmentTagInput.trim()) return;
     const updated = await storageService.addEntertainmentTag(newEntertainmentTagInput.trim());
@@ -178,12 +160,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     setIsAddingEntertainmentTag(false);
   };
 
-  const handleDeleteEntertainmentTag = async (tagToDelete: string) => {
-    const updated = await storageService.deleteEntertainmentTag(tagToDelete);
-    setEntertainmentTags(updated);
-    if (memo === tagToDelete) setMemo('');
-  };
-
   const handleAddShoppingTag = async () => {
     if (!newShoppingTagInput.trim()) return;
     const updated = await storageService.addShoppingTag(newShoppingTagInput.trim());
@@ -191,12 +167,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     setMemo(newShoppingTagInput.trim());
     setNewShoppingTagInput('');
     setIsAddingShoppingTag(false);
-  };
-
-  const handleDeleteShoppingTag = async (tagToDelete: string) => {
-    const updated = await storageService.deleteShoppingTag(tagToDelete);
-    setShoppingTags(updated);
-    if (memo === tagToDelete) setMemo('');
   };
 
   if (!isOpen) return null;
@@ -420,36 +390,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {foodTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <div
+                    <button
                       key={tag}
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition border cursor-pointer active:scale-95 ${
+                      type="button"
+                      onClick={() => {
+                        setMemo(isSelected ? '' : tag);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
                         isSelected
                           ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
                           : 'bg-white text-slate-700 border-amber-200/70 hover:bg-amber-50/80'
                       }`}
-                      onClick={() => {
-                        setMemo(isSelected ? '' : tag);
-                      }}
                     >
-                      <span className="truncate">
-                        {tag}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
-                            handleDeleteFoodTag(tag);
-                          }
-                        }}
-                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
-                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
-                        }`}
-                        title="구분 삭제"
-                      >
-                        ×
-                      </button>
-                    </div>
+                      {tag}
+                    </button>
                   );
                 })}
               </div>
@@ -515,36 +469,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {entertainmentTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <div
+                    <button
                       key={tag}
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition border cursor-pointer active:scale-95 ${
+                      type="button"
+                      onClick={() => {
+                        setMemo(isSelected ? '' : tag);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
                         isSelected
                           ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
                           : 'bg-white text-slate-700 border-purple-200/70 hover:bg-purple-50/80'
                       }`}
-                      onClick={() => {
-                        setMemo(isSelected ? '' : tag);
-                      }}
                     >
-                      <span className="truncate">
-                        {tag}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
-                            handleDeleteEntertainmentTag(tag);
-                          }
-                        }}
-                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
-                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
-                        }`}
-                        title="구분 삭제"
-                      >
-                        ×
-                      </button>
-                    </div>
+                      {tag}
+                    </button>
                   );
                 })}
               </div>
@@ -610,36 +548,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {shoppingTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <div
+                    <button
                       key={tag}
-                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold transition border cursor-pointer active:scale-95 ${
+                      type="button"
+                      onClick={() => {
+                        setMemo(isSelected ? '' : tag);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
                         isSelected
                           ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
                           : 'bg-white text-slate-700 border-rose-200/70 hover:bg-rose-50/80'
                       }`}
-                      onClick={() => {
-                        setMemo(isSelected ? '' : tag);
-                      }}
                     >
-                      <span className="truncate">
-                        {tag}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
-                            handleDeleteShoppingTag(tag);
-                          }
-                        }}
-                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
-                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
-                        }`}
-                        title="구분 삭제"
-                      >
-                        ×
-                      </button>
-                    </div>
+                      {tag}
+                    </button>
                   );
                 })}
               </div>
@@ -731,39 +653,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {fixedTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <div
+                    <button
                       key={tag}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold transition border ${
+                      type="button"
+                      onClick={() => {
+                        setMemo(tag);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
                         isSelected
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                           : 'bg-white text-slate-700 border-emerald-200/70 hover:bg-emerald-50/80'
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMemo(tag);
-                        }}
-                        className="truncate"
-                      >
-                        {tag}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`'${tag}' 구분을 목록에서 삭제하시겠습니까?`)) {
-                            handleDeleteTag(tag);
-                          }
-                        }}
-                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
-                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
-                        }`}
-                        title="구분 삭제"
-                      >
-                        ×
-                      </button>
-                    </div>
+                      {tag}
+                    </button>
                   );
                 })}
               </div>
@@ -829,39 +732,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {businessTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <div
+                    <button
                       key={tag}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-semibold transition border ${
+                      type="button"
+                      onClick={() => {
+                        setMemo(isSelected ? '' : tag);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
                         isSelected
                           ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
                           : 'bg-white text-slate-700 border-blue-200/70 hover:bg-blue-50/80'
                       }`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMemo(isSelected ? '' : tag);
-                        }}
-                        className="truncate"
-                      >
-                        {tag}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(`'${tag}' 항목을 목록에서 삭제하시겠습니까?`)) {
-                            handleDeleteBusinessTag(tag);
-                          }
-                        }}
-                        className={`text-[11px] px-1 rounded-full hover:bg-black/10 transition ${
-                          isSelected ? 'text-white' : 'text-slate-400 hover:text-rose-500'
-                        }`}
-                        title="항목 삭제"
-                      >
-                        ×
-                      </button>
-                    </div>
+                      {tag}
+                    </button>
                   );
                 })}
               </div>

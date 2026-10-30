@@ -502,8 +502,8 @@ export const storageService = {
       }
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // 기존 '식대'가 있다면 '장보기'로 교체 또는 정리
-        const filtered = parsed.filter(item => item !== '식대');
+        // 기존 남아있을 수 있는 '군것질', '커피', '식대'는 생활필수에서 확실히 제거 (나쁜짓으로 이동)
+        const filtered = parsed.filter(item => item !== '식대' && item !== '군것질' && item !== '커피');
         const required = ['한끼', '장보기', '생필품'];
         for (const item of required) {
           if (!filtered.includes(item)) {
