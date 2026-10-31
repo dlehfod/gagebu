@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { storageService } from './lib/storage';
-import { getLocalDateString, type Income, type Expense, type Asset, type Settings, type AssetAdjustment, type FixedExpense } from './types';
+import { type Income, type Expense, type Asset, type Settings, type AssetAdjustment, type FixedExpense } from './types';
 import { Dashboard } from './components/Dashboard';
 import { HistoryList } from './components/HistoryList';
 import { AssetManager } from './components/AssetManager';
@@ -59,22 +59,15 @@ export function App() {
         storageService.getFixedExpenses(),
       ]);
 
-      // 과거 시차(UTC) 버그로 인해 2026-10-04로 저장된 오늘 발생 내역을 오늘 날짜로 자동 보정
-      const todayStr = getLocalDateString();
-      const needsExpenseMigration = loadedExpenses.filter(e => e.date === '2026-10-04');
-      if (needsExpenseMigration.length > 0) {
-        for (const item of needsExpenseMigration) {
-          await storageService.updateExpense(item.id, { date: todayStr });
-        }
-        loadedExpenses = await storageService.getExpenses();
-      }
-
-      const needsIncomeMigration = loadedIncomes.filter(i => i.date === '2026-10-04');
-      if (needsIncomeMigration.length > 0) {
-        for (const item of needsIncomeMigration) {
-          await storageService.updateIncome(item.id, { date: todayStr });
-        }
-        loadedIncomes = await storageService.getIncomes();
+      // 11월 새출발: 10월분 데이터 자동 1회 정리 (클라우드 및 로컬)
+      const hasCleanedOct = localStorage.getItem('app_october_data_cleaned_2026_11');
+      if (!hasCleanedOct) {
+        await storageService.deleteOctober2026Data();
+        localStorage.setItem('app_october_data_cleaned_2026_11', 'true');
+        [loadedIncomes, loadedExpenses] = await Promise.all([
+          storageService.getIncomes(),
+          storageService.getExpenses(),
+        ]);
       }
 
       // 고정비 납부 상태 로컬 동기화
@@ -507,6 +500,7 @@ export function App() {
             <SettingsModal
               settings={settings}
               onSave={handleSaveSettings}
+              onRefreshData={loadData}
             />
           )}
         </main>

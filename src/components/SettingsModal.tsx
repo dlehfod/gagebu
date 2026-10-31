@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import type { Settings } from '../types';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { Database, ShieldCheck } from 'lucide-react';
+import { storageService } from '../lib/storage';
+import { Database, ShieldCheck, Trash2 } from 'lucide-react';
 
 interface SettingsModalProps {
   settings: Settings;
   onSave: (updated: Settings) => void;
+  onRefreshData?: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave, onRefreshData }) => {
   const [limitStr, setLimitStr] = useState(String(settings.monthly_discretionary_limit || 1000000));
   const [financialGoal, setFinancialGoal] = useState(settings.financial_goal || '총자산 1억 모으기');
   const [isSaved, setIsSaved] = useState(false);
+  const [isDeletingOct, setIsDeletingOct] = useState(false);
 
   // settings props가 변경되거나 로드되었을 때 상태 동기화
   React.useEffect(() => {
@@ -107,6 +110,43 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ settings, onSave }
           {isSaved ? '✓ 설정이 안전하게 저장되었습니다' : '설정 저장하기'}
         </button>
       </form>
+
+      {/* 10월 데이터 초기화 관리 카드 */}
+      <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Trash2 size={16} className="text-rose-500" />
+            <h4 className="text-sm font-bold text-slate-900">10월 테스트 데이터 정리</h4>
+          </div>
+        </div>
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          11월 1일부터 새로운 마음으로 가계부를 시작할 수 있도록, 10월 한 달 동안 기록되었던 연습용 지출/수입 데이터를 즉시 삭제합니다.
+        </p>
+        <button
+          type="button"
+          disabled={isDeletingOct}
+          onClick={async () => {
+            if (window.confirm('정말 2026년 10월의 모든 지출 및 수입 데이터를 삭제하시겠습니까? (11월부터 새롭게 시작됩니다)')) {
+              setIsDeletingOct(true);
+              try {
+                await storageService.deleteOctober2026Data();
+                localStorage.setItem('app_october_data_cleaned_2026_11', 'true');
+                if (onRefreshData) onRefreshData();
+                alert('10월 데이터가 깨끗하게 삭제되었습니다! 11월 새출발을 응원합니다. 🎉');
+              } catch (e) {
+                console.error(e);
+                alert('삭제 중 오류가 발생했습니다.');
+              } finally {
+                setIsDeletingOct(false);
+              }
+            }
+          }}
+          className="w-full py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 text-xs font-bold transition flex items-center justify-center gap-1.5 active:scale-95 disabled:opacity-50"
+        >
+          <Trash2 size={13} />
+          <span>{isDeletingOct ? '삭제 처리 중...' : '10월 수입/지출 데이터 지금 비우기'}</span>
+        </button>
+      </div>
     </div>
   );
 };

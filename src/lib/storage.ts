@@ -160,6 +160,55 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(updated));
   },
 
+  // 10월분 데이터 일괄 삭제 (로컬스토리지 및 Supabase 클라우드 동시 처리)
+  async deleteOctober2026Data(): Promise<{ deletedIncomes: number; deletedExpenses: number }> {
+    let deletedIncomes = 0;
+    let deletedExpenses = 0;
+
+    // 1. Supabase 클라우드에서 2026-10 데이터 삭제
+    if (isSupabaseConfigured && supabase) {
+      try {
+        const { error: incErr } = await supabase
+          .from('incomes')
+          .delete()
+          .gte('date', '2026-10-01')
+          .lte('date', '2026-10-31');
+        if (incErr) console.warn('Supabase incomes delete error:', incErr);
+
+        const { error: expErr } = await supabase
+          .from('expenses')
+          .delete()
+          .gte('date', '2026-10-01')
+          .lte('date', '2026-10-31');
+        if (expErr) console.warn('Supabase expenses delete error:', expErr);
+      } catch (e) {
+        console.error('Failed to delete October data from supabase', e);
+      }
+    }
+
+    // 2. 브라우저 localStorage에서도 2026-10 데이터 삭제
+    const rawIncomes = localStorage.getItem(STORAGE_KEYS.INCOMES);
+    if (rawIncomes) {
+      const incList: Income[] = JSON.parse(rawIncomes);
+      const filtered = incList.filter(i => !i.date.startsWith('2026-10'));
+      deletedIncomes = incList.length - filtered.length;
+      localStorage.setItem(STORAGE_KEYS.INCOMES, JSON.stringify(filtered));
+    }
+
+    const rawExpenses = localStorage.getItem(STORAGE_KEYS.EXPENSES);
+    if (rawExpenses) {
+      const expList: Expense[] = JSON.parse(rawExpenses);
+      const filtered = expList.filter(e => !e.date.startsWith('2026-10'));
+      deletedExpenses = expList.length - filtered.length;
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(filtered));
+    }
+
+    // 10월 고정비 납부 상태 캐시도 정리
+    localStorage.removeItem('app_paid_fixed_2026-10');
+
+    return { deletedIncomes, deletedExpenses };
+  },
+
   // === SETTINGS ===
   async getSettings(): Promise<Settings> {
     if (isSupabaseConfigured && supabase) {
