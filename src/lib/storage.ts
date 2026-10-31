@@ -427,12 +427,8 @@ export const storageService = {
 
   // === 고정비 구분 태그 (사용자 직접 생성/삭제) ===
   async getFixedTags(): Promise<string[]> {
-    const raw = localStorage.getItem(STORAGE_KEYS.FIXED_TAGS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.FIXED_TAGS, JSON.stringify(DEFAULT_FIXED_TAGS));
-      return DEFAULT_FIXED_TAGS;
-    }
-    return JSON.parse(raw);
+    localStorage.setItem(STORAGE_KEYS.FIXED_TAGS, JSON.stringify(DEFAULT_FIXED_TAGS));
+    return DEFAULT_FIXED_TAGS;
   },
 
   async addFixedTag(tag: string): Promise<string[]> {
@@ -451,29 +447,10 @@ export const storageService = {
     return updated;
   },
 
-  // === 사업비 구분 태그 (사용자 직접 생성/삭제) ===
+  // === 사업비 구분 태그 ===
   async getBusinessTags(): Promise<string[]> {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.BUSINESS_TAGS);
-      if (!raw) {
-        localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
-        return DEFAULT_BUSINESS_TAGS;
-      }
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        if (!parsed.includes('세금')) {
-          const etcIdx = parsed.indexOf('기타');
-          if (etcIdx >= 0) parsed.splice(etcIdx, 0, '세금');
-          else parsed.push('세금');
-          localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(parsed));
-        }
-        return parsed;
-      }
-      localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
-      return DEFAULT_BUSINESS_TAGS;
-    } catch {
-      return DEFAULT_BUSINESS_TAGS;
-    }
+    localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
+    return DEFAULT_BUSINESS_TAGS;
   },
 
   async addBusinessTag(tag: string): Promise<string[]> {
@@ -492,34 +469,10 @@ export const storageService = {
     return updated;
   },
 
-  // === 생활필수 구분 태그 (한끼, 장보기, 생필품, 기타 등) ===
+  // === 생활필수 구분 태그 ===
   async getFoodTags(): Promise<string[]> {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.FOOD_TAGS);
-      if (!raw) {
-        localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
-        return DEFAULT_FOOD_TAGS;
-      }
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // 기존 남아있을 수 있는 '군것질', '커피', '식대'는 생활필수에서 확실히 제거 (나쁜짓으로 이동)
-        const filtered = parsed.filter(item => item !== '식대' && item !== '군것질' && item !== '커피');
-        const required = ['한끼', '장보기', '생필품'];
-        for (const item of required) {
-          if (!filtered.includes(item)) {
-            const etcIdx = filtered.indexOf('기타');
-            if (etcIdx >= 0) filtered.splice(etcIdx, 0, item);
-            else filtered.push(item);
-          }
-        }
-        localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(filtered));
-        return filtered;
-      }
-      localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
-      return DEFAULT_FOOD_TAGS;
-    } catch {
-      return DEFAULT_FOOD_TAGS;
-    }
+    localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
+    return DEFAULT_FOOD_TAGS;
   },
 
   async addFoodTag(tag: string): Promise<string[]> {
@@ -538,36 +491,10 @@ export const storageService = {
     return updated;
   },
 
-  // === 나쁜짓 구분 태그 (나이트, 차비, 여자만남, 어플, 군것질, 술값, 기타 등) ===
+  // === 나쁜짓 구분 태그 ===
   async getEntertainmentTags(): Promise<string[]> {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.ENTERTAINMENT_TAGS);
-      if (!raw) {
-        localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(DEFAULT_ENTERTAINMENT_TAGS));
-        return DEFAULT_ENTERTAINMENT_TAGS;
-      }
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const required = ['나이트', '차비', '여자만남', '어플', '군것질', '술값'];
-        let updated = false;
-        for (const item of required) {
-          if (!parsed.includes(item)) {
-            const etcIdx = parsed.indexOf('기타');
-            if (etcIdx >= 0) parsed.splice(etcIdx, 0, item);
-            else parsed.push(item);
-            updated = true;
-          }
-        }
-        if (updated) {
-          localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(parsed));
-        }
-        return parsed;
-      }
-      localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(DEFAULT_ENTERTAINMENT_TAGS));
-      return DEFAULT_ENTERTAINMENT_TAGS;
-    } catch {
-      return DEFAULT_ENTERTAINMENT_TAGS;
-    }
+    localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(DEFAULT_ENTERTAINMENT_TAGS));
+    return DEFAULT_ENTERTAINMENT_TAGS;
   },
 
   async addEntertainmentTag(tag: string): Promise<string[]> {
@@ -586,34 +513,10 @@ export const storageService = {
     return updated;
   },
 
-  // === 물건 구분 태그 (옷, 기타물건 등) ===
+  // === 물건 구분 태그 ===
   async getShoppingTags(): Promise<string[]> {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEYS.SHOPPING_TAGS);
-      if (!raw) {
-        localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(DEFAULT_SHOPPING_TAGS));
-        return DEFAULT_SHOPPING_TAGS;
-      }
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const required = ['옷', '기타물건'];
-        let updated = false;
-        for (const item of required) {
-          if (!parsed.includes(item)) {
-            parsed.push(item);
-            updated = true;
-          }
-        }
-        if (updated) {
-          localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(parsed));
-        }
-        return parsed;
-      }
-      localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(DEFAULT_SHOPPING_TAGS));
-      return DEFAULT_SHOPPING_TAGS;
-    } catch {
-      return DEFAULT_SHOPPING_TAGS;
-    }
+    localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(DEFAULT_SHOPPING_TAGS));
+    return DEFAULT_SHOPPING_TAGS;
   },
 
   async addShoppingTag(tag: string): Promise<string[]> {
