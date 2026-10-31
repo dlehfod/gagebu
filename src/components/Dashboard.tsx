@@ -168,7 +168,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     monthCategoryTotals['fixed'] = (monthCategoryTotals['fixed'] || 0) + paidFixedTotal;
   }
 
-  const categoryOrder: (keyof typeof CATEGORIES)[] = ['business', 'food', 'shopping', 'entertainment', 'fixed', 'other'];
+  const categoryOrder: (keyof typeof CATEGORIES)[] = ['business', 'food', 'shopping', 'entertainment', 'fixed'];
   const monthCategoryList = categoryOrder.map(catKey => {
     const catInfo = CATEGORIES[catKey];
     const amount = monthCategoryTotals[catKey] || 0;
@@ -252,14 +252,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
     // 2) 지출 범주별 그룹화
     const expGrouped: Record<string, { amount: number; count: number }> = {};
     for (const exp of selectedDateExpenses) {
-      const cat = exp.category || 'other';
+      const cat = exp.category === ('other' as any) ? 'entertainment' : exp.category;
       if (!expGrouped[cat]) expGrouped[cat] = { amount: 0, count: 0 };
       expGrouped[cat].amount += exp.amount;
       expGrouped[cat].count += 1;
     }
 
-    // 카테고리 순서 (음식, 물건, 유흥, 사업비, 고정비, 기타)
-    const expOrder = ['food', 'shopping', 'entertainment', 'business', 'fixed', 'other'] as const;
+    // 카테고리 순서 (음식, 물건, 유흥, 사업비, 고정비)
+    const expOrder = ['food', 'shopping', 'entertainment', 'business', 'fixed'] as const;
     for (const catKey of expOrder) {
       if (expGrouped[catKey] && expGrouped[catKey].amount > 0) {
         const catInfo = CATEGORIES[catKey];

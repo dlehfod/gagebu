@@ -37,7 +37,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [newFoodTagInput, setNewFoodTagInput] = useState('');
 
   // 나쁜짓 구분 태그 상태
-  const [entertainmentTags, setEntertainmentTags] = useState<string[]>(['나이트', '차비', '여자만남', '어플', '군것질', '술값', '기타']);
+  const [entertainmentTags, setEntertainmentTags] = useState<string[]>(['나이트', '차비', '여자만남', '어플', '군것질', '술값', '자유소비', '기타']);
   const [isAddingEntertainmentTag, setIsAddingEntertainmentTag] = useState(false);
   const [newEntertainmentTagInput, setNewEntertainmentTagInput] = useState('');
 

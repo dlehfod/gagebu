@@ -141,17 +141,17 @@ export const HistoryList: React.FC<HistoryListProps> = ({
   };
 
   // 범주 구분용: 수입 → 각 지출 범주 순으로 묶고, 범주가 바뀌면 구분 줄 표시
-  const groupOrder: string[] = ['income', 'business', 'food', 'shopping', 'entertainment', 'fixed', 'other'];
+  const groupOrder: string[] = ['income', 'business', 'food', 'shopping', 'entertainment', 'fixed'];
   const groupKeyOf = (it: any): string => {
     if (!it.isExpense) return 'income';
-    return groupOrder.includes(it.category) ? it.category : 'other';
+    return groupOrder.includes(it.category) ? it.category : 'entertainment';
   };
   const sortByGroup = <T,>(arr: T[]): T[] =>
     [...arr].sort((a, b) => groupOrder.indexOf(groupKeyOf(a)) - groupOrder.indexOf(groupKeyOf(b)));
   const groupLabelOf = (k: string): string => {
     if (k === 'income') return '💰 수입';
     const info = (CATEGORIES as any)[k];
-    return `${info?.emoji || '🏷️'} ${k === 'food' ? '식비' : info?.label || '기타'}`;
+    return `${info?.emoji || '🏷️'} ${info?.label || '기타'}`;
   };
 
   return (
