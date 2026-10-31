@@ -13,9 +13,9 @@ export interface CategoryInfo {
 }
 
 export const CATEGORIES: Record<ExpenseCategory, CategoryInfo> = {
-  food: { label: '생활필수', emoji: '🍚', description: '한끼, 장보기(반찬/김/참치), 생필품(물 등)', isDiscretionary: true },
-  entertainment: { label: '나쁜짓', emoji: '😈', description: '나이트, 차비, 여자만남, 어플, 군것질, 술값, 자유소비', isDiscretionary: true },
-  shopping: { label: '물건', emoji: '🛍', description: '옷, 기타물건, 잡화', isDiscretionary: true },
+  food: { label: '생활필수', emoji: '🍚', description: '한끼, 장보기(반찬/김/참치), 생필품(물 등)' },
+  entertainment: { label: '나쁜짓', emoji: '😈', description: '나이트, 차비, 여자만남, 어플, 군것질, 술값' },
+  shopping: { label: '물건', emoji: '🛍', description: '옷, 기타물건, 잡화' },
   fixed: { label: '고정비', emoji: '🏠', description: '월세, 통신비, 보험, 연금' },
   business: { label: '사업비', emoji: '💼', description: '광고비, 서버비, 바이브코딩, 세금' },
 };

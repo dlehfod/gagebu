@@ -40,7 +40,7 @@ const DEFAULT_FIXED_EXPENSES: FixedExpense[] = [
 const DEFAULT_FIXED_TAGS: string[] = ['통신비', '월세/관리비', '보험료', '구독료(OTT/음악)', '교통/주유'];
 const DEFAULT_BUSINESS_TAGS: string[] = ['광고비', '바이브코딩', '세금', '기타'];
 const DEFAULT_FOOD_TAGS: string[] = ['한끼', '장보기', '생필품', '기타'];
-const DEFAULT_ENTERTAINMENT_TAGS: string[] = ['나이트', '차비', '여자만남', '어플', '군것질', '술값', '자유소비', '기타'];
+const DEFAULT_ENTERTAINMENT_TAGS: string[] = ['나이트', '차비', '여자만남', '어플', '군것질', '술값', '기타'];
 const DEFAULT_SHOPPING_TAGS: string[] = ['옷', '기타물건'];
 
 export const storageService = {

@@ -37,7 +37,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [newFoodTagInput, setNewFoodTagInput] = useState('');
 
   // 나쁜짓 구분 태그 상태
-  const [entertainmentTags, setEntertainmentTags] = useState<string[]>(['나이트', '차비', '여자만남', '어플', '군것질', '술값', '자유소비', '기타']);
+  const [entertainmentTags, setEntertainmentTags] = useState<string[]>(['나이트', '차비', '여자만남', '어플', '군것질', '술값', '기타']);
   const [isAddingEntertainmentTag, setIsAddingEntertainmentTag] = useState(false);
   const [newEntertainmentTagInput, setNewEntertainmentTagInput] = useState('');
 
@@ -322,9 +322,6 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                   >
                     <span className="text-2xl mb-1">{info.emoji}</span>
                     <span>{info.label}</span>
-                    {info.isDiscretionary && (
-                      <span className="text-[10px] text-amber-600 font-semibold mt-0.5">자유소비</span>
-                    )}
                   </button>
                 );
               })}
