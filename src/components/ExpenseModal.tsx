@@ -365,30 +365,30 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
           {category === 'food' && (
             <div ref={foodSectionRef} className="bg-amber-50/80 border border-amber-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
-                <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                <span className="font-bold text-amber-950 flex items-center gap-1 shrink-0">
                   <span>🍚</span>
-                  <span>생활필수 세부 항목 (터치하여 선택)</span>
+                  <span>생활필수 세부 항목</span>
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsManageMode(!isManageMode)}
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md transition border flex items-center gap-0.5 whitespace-nowrap ${
                       isManageMode
                         ? 'bg-amber-600 text-white border-amber-600'
                         : 'bg-white text-slate-600 hover:text-slate-900 border-amber-200/80'
                     }`}
                   >
-                    <Settings2 size={11} />
+                    <Settings2 size={10} />
                     <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
                   {!isAddingFoodTag && (
                     <button
                       type="button"
                       onClick={() => setIsAddingFoodTag(true)}
-                      className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 bg-white border border-amber-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                      className="text-[10px] font-semibold text-amber-700 hover:text-amber-900 bg-white border border-amber-200/80 px-1.5 py-0.5 rounded-md transition shadow-xs flex items-center gap-0.5 whitespace-nowrap"
                     >
-                      <Plus size={11} />
+                      <Plus size={10} />
                       <span>새 항목</span>
                     </button>
                   )}
@@ -473,30 +473,30 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
           {category === 'entertainment' && (
             <div ref={entertainmentSectionRef} className="bg-purple-50/80 border border-purple-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
-                <span className="font-bold text-purple-950 flex items-center gap-1.5">
+                <span className="font-bold text-purple-950 flex items-center gap-1 shrink-0">
                   <span>😈</span>
-                  <span>나쁜짓 세부 항목 (터치하여 선택)</span>
+                  <span>나쁜짓 세부 항목</span>
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsManageMode(!isManageMode)}
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md transition border flex items-center gap-0.5 whitespace-nowrap ${
                       isManageMode
                         ? 'bg-purple-600 text-white border-purple-600'
                         : 'bg-white text-slate-600 hover:text-slate-900 border-purple-200/80'
                     }`}
                   >
-                    <Settings2 size={11} />
+                    <Settings2 size={10} />
                     <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
                   {!isAddingEntertainmentTag && (
                     <button
                       type="button"
                       onClick={() => setIsAddingEntertainmentTag(true)}
-                      className="text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-white border border-purple-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                      className="text-[10px] font-semibold text-purple-700 hover:text-purple-900 bg-white border border-purple-200/80 px-1.5 py-0.5 rounded-md transition shadow-xs flex items-center gap-0.5 whitespace-nowrap"
                     >
-                      <Plus size={11} />
+                      <Plus size={10} />
                       <span>새 항목</span>
                     </button>
                   )}
@@ -581,30 +581,30 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
           {category === 'shopping' && (
             <div ref={shoppingSectionRef} className="bg-rose-50/80 border border-rose-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
-                <span className="font-bold text-rose-950 flex items-center gap-1.5">
+                <span className="font-bold text-rose-950 flex items-center gap-1 shrink-0">
                   <span>🛍</span>
-                  <span>물건 세부 항목 (터치하여 선택)</span>
+                  <span>물건 세부 항목</span>
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsManageMode(!isManageMode)}
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md transition border flex items-center gap-0.5 whitespace-nowrap ${
                       isManageMode
                         ? 'bg-rose-600 text-white border-rose-600'
                         : 'bg-white text-slate-600 hover:text-slate-900 border-rose-200/80'
                     }`}
                   >
-                    <Settings2 size={11} />
+                    <Settings2 size={10} />
                     <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
                   {!isAddingShoppingTag && (
                     <button
                       type="button"
                       onClick={() => setIsAddingShoppingTag(true)}
-                      className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-white border border-rose-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                      className="text-[10px] font-semibold text-rose-700 hover:text-rose-900 bg-white border border-rose-200/80 px-1.5 py-0.5 rounded-md transition shadow-xs flex items-center gap-0.5 whitespace-nowrap"
                     >
-                      <Plus size={11} />
+                      <Plus size={10} />
                       <span>새 항목</span>
                     </button>
                   )}
@@ -715,31 +715,31 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">
-                <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                <span className="font-bold text-emerald-950 flex items-center gap-1 shrink-0">
                   <span>🏠</span>
-                  <span>고정비 구분 (터치하여 선택)</span>
+                  <span>고정비 세부 항목</span>
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsManageMode(!isManageMode)}
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md transition border flex items-center gap-0.5 whitespace-nowrap ${
                       isManageMode
                         ? 'bg-emerald-600 text-white border-emerald-600'
                         : 'bg-white text-slate-600 hover:text-slate-900 border-emerald-200/80'
                     }`}
                   >
-                    <Settings2 size={11} />
+                    <Settings2 size={10} />
                     <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
                   {!isAddingTag && (
                     <button
                       type="button"
                       onClick={() => setIsAddingTag(true)}
-                      className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                      className="text-[10px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200/80 px-1.5 py-0.5 rounded-md transition shadow-xs flex items-center gap-0.5 whitespace-nowrap"
                     >
-                      <Plus size={11} />
-                      <span>새 구분</span>
+                      <Plus size={10} />
+                      <span>새 항목</span>
                     </button>
                   )}
                 </div>
@@ -823,30 +823,30 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
           {category === 'business' && (
             <div ref={businessSectionRef} className="bg-blue-50/80 border border-blue-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
-                <span className="font-bold text-blue-950 flex items-center gap-1.5">
+                <span className="font-bold text-blue-950 flex items-center gap-1 shrink-0">
                   <span>💼</span>
-                  <span>사업비 세부 항목 (터치하여 선택)</span>
+                  <span>사업비 세부 항목</span>
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsManageMode(!isManageMode)}
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                    className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md transition border flex items-center gap-0.5 whitespace-nowrap ${
                       isManageMode
                         ? 'bg-blue-600 text-white border-blue-600'
                         : 'bg-white text-slate-600 hover:text-slate-900 border-blue-200/80'
                     }`}
                   >
-                    <Settings2 size={11} />
+                    <Settings2 size={10} />
                     <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
                   {!isAddingBusinessTag && (
                     <button
                       type="button"
                       onClick={() => setIsAddingBusinessTag(true)}
-                      className="text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-white border border-blue-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                      className="text-[10px] font-semibold text-blue-700 hover:text-blue-900 bg-white border border-blue-200/80 px-1.5 py-0.5 rounded-md transition shadow-xs flex items-center gap-0.5 whitespace-nowrap"
                     >
-                      <Plus size={11} />
+                      <Plus size={10} />
                       <span>새 항목</span>
                     </button>
                   )}
