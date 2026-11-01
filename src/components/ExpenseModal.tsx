@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CATEGORIES, getLocalDateString, type ExpenseCategory } from '../types';
 import { storageService } from '../lib/storage';
-import { X, Plus } from 'lucide-react';
+import { X, Plus, Settings2, Trash2 } from 'lucide-react';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -45,6 +45,9 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
   const [shoppingTags, setShoppingTags] = useState<string[]>(['옷', '기타물건']);
   const [isAddingShoppingTag, setIsAddingShoppingTag] = useState(false);
   const [newShoppingTagInput, setNewShoppingTagInput] = useState('');
+
+  // 세부항목 관리(삭제/정리) 모드 토글
+  const [isManageMode, setIsManageMode] = useState(false);
 
   const modalRef = React.useRef<HTMLDivElement>(null);
   const businessSectionRef = React.useRef<HTMLDivElement>(null);
@@ -167,6 +170,36 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
     setMemo(newShoppingTagInput.trim());
     setNewShoppingTagInput('');
     setIsAddingShoppingTag(false);
+  };
+
+  const handleDeleteTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteFixedTag(tagToDelete);
+    setFixedTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleDeleteBusinessTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteBusinessTag(tagToDelete);
+    setBusinessTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleDeleteFoodTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteFoodTag(tagToDelete);
+    setFoodTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleDeleteEntertainmentTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteEntertainmentTag(tagToDelete);
+    setEntertainmentTags(updated);
+    if (memo === tagToDelete) setMemo('');
+  };
+
+  const handleDeleteShoppingTag = async (tagToDelete: string) => {
+    const updated = await storageService.deleteShoppingTag(tagToDelete);
+    setShoppingTags(updated);
+    if (memo === tagToDelete) setMemo('');
   };
 
   if (!isOpen) return null;
@@ -334,18 +367,32 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
               <div className="flex items-center justify-between text-xs pt-0.5">
                 <span className="font-bold text-amber-950 flex items-center gap-1.5">
                   <span>🍚</span>
-                  <span>생활필수 세부 구분 (터치하여 선택)</span>
+                  <span>생활필수 세부 항목 (터치하여 선택)</span>
                 </span>
-                {!isAddingFoodTag && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setIsAddingFoodTag(true)}
-                    className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 bg-white border border-amber-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    onClick={() => setIsManageMode(!isManageMode)}
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                      isManageMode
+                        ? 'bg-amber-600 text-white border-amber-600'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border-amber-200/80'
+                    }`}
                   >
-                    <Plus size={11} />
-                    <span>새 구분 만들기</span>
+                    <Settings2 size={11} />
+                    <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
-                )}
+                  {!isAddingFoodTag && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingFoodTag(true)}
+                      className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 bg-white border border-amber-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    >
+                      <Plus size={11} />
+                      <span>새 항목</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* 새 생활필수 구분 직접 만들기 폼 */}
@@ -353,7 +400,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 <div className="flex gap-1.5 pt-1">
                   <input
                     type="text"
-                    placeholder="새 구분 이름 (예: 한끼, 식대, 생필품)"
+                    placeholder="새 항목 이름 입력 (예: 한끼, 장보기)"
                     value={newFoodTagInput}
                     onChange={(e) => setNewFoodTagInput(e.target.value)}
                     className="flex-1 bg-white border border-amber-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-amber-500"
@@ -387,44 +434,73 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {foodTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        setMemo(isSelected ? '' : tag);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
-                        isSelected
-                          ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-amber-200/70 hover:bg-amber-50/80'
-                      }`}
-                    >
-                      {tag}
-                    </button>
+                    <div key={tag} className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemo(isSelected ? '' : tag);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
+                          isSelected
+                            ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-amber-200/70 hover:bg-amber-50/80'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                      {isManageMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`'${tag}' 항목을 삭제하시겠습니까?`)) {
+                              handleDeleteFoodTag(tag);
+                            }
+                          }}
+                          className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition"
+                          title="삭제"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
             </div>
           )}
 
-          {/* 나쁜짓 세부 구분 칩 (나이트, 차비, 여자만남, 어플, 군것질, 술값 등) */}
+          {/* 나쁜짓 세부 구분 칩 및 직접 추가 기능 */}
           {category === 'entertainment' && (
             <div ref={entertainmentSectionRef} className="bg-purple-50/80 border border-purple-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
                 <span className="font-bold text-purple-950 flex items-center gap-1.5">
                   <span>😈</span>
-                  <span>나쁜짓 세부 구분 (터치하여 선택)</span>
+                  <span>나쁜짓 세부 항목 (터치하여 선택)</span>
                 </span>
-                {!isAddingEntertainmentTag && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setIsAddingEntertainmentTag(true)}
-                    className="text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-white border border-purple-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    onClick={() => setIsManageMode(!isManageMode)}
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                      isManageMode
+                        ? 'bg-purple-600 text-white border-purple-600'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border-purple-200/80'
+                    }`}
                   >
-                    <Plus size={11} />
-                    <span>새 구분 만들기</span>
+                    <Settings2 size={11} />
+                    <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
-                )}
+                  {!isAddingEntertainmentTag && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingEntertainmentTag(true)}
+                      className="text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-white border border-purple-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    >
+                      <Plus size={11} />
+                      <span>새 항목</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* 새 나쁜짓 구분 직접 만들기 폼 */}
@@ -432,7 +508,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 <div className="flex gap-1.5 pt-1">
                   <input
                     type="text"
-                    placeholder="새 구분 이름 (예: 나이트, 술값, 군것질)"
+                    placeholder="새 항목 이름 입력 (예: 나이트, 술값)"
                     value={newEntertainmentTagInput}
                     onChange={(e) => setNewEntertainmentTagInput(e.target.value)}
                     className="flex-1 bg-white border border-purple-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-purple-500"
@@ -466,44 +542,73 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {entertainmentTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        setMemo(isSelected ? '' : tag);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
-                        isSelected
-                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-purple-200/70 hover:bg-purple-50/80'
-                      }`}
-                    >
-                      {tag}
-                    </button>
+                    <div key={tag} className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemo(isSelected ? '' : tag);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
+                          isSelected
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-purple-200/70 hover:bg-purple-50/80'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                      {isManageMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`'${tag}' 항목을 삭제하시겠습니까?`)) {
+                              handleDeleteEntertainmentTag(tag);
+                            }
+                          }}
+                          className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition"
+                          title="삭제"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
             </div>
           )}
 
-          {/* 물건 세부 구분 칩 (옷사기, 기타 등) */}
+          {/* 물건 세부 구분 칩 (옷, 기타물건 등) */}
           {category === 'shopping' && (
             <div ref={shoppingSectionRef} className="bg-rose-50/80 border border-rose-200 rounded-2xl p-3.5 space-y-2.5 animate-in fade-in duration-150">
               <div className="flex items-center justify-between text-xs pt-0.5">
                 <span className="font-bold text-rose-950 flex items-center gap-1.5">
                   <span>🛍</span>
-                  <span>물건 세부 구분 (터치하여 선택)</span>
+                  <span>물건 세부 항목 (터치하여 선택)</span>
                 </span>
-                {!isAddingShoppingTag && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setIsAddingShoppingTag(true)}
-                    className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-white border border-rose-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    onClick={() => setIsManageMode(!isManageMode)}
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                      isManageMode
+                        ? 'bg-rose-600 text-white border-rose-600'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border-rose-200/80'
+                    }`}
                   >
-                    <Plus size={11} />
-                    <span>새 구분 만들기</span>
+                    <Settings2 size={11} />
+                    <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
-                )}
+                  {!isAddingShoppingTag && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingShoppingTag(true)}
+                      className="text-[11px] font-semibold text-rose-700 hover:text-rose-900 bg-white border border-rose-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    >
+                      <Plus size={11} />
+                      <span>새 항목</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* 새 물건 구분 직접 만들기 폼 */}
@@ -511,7 +616,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 <div className="flex gap-1.5 pt-1">
                   <input
                     type="text"
-                    placeholder="새 구분 이름 (예: 생필품, 전자기기)"
+                    placeholder="새 항목 이름 입력 (예: 신발, 전자기기)"
                     value={newShoppingTagInput}
                     onChange={(e) => setNewShoppingTagInput(e.target.value)}
                     className="flex-1 bg-white border border-rose-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-rose-500"
@@ -540,25 +645,40 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 </div>
               )}
 
-              {/* 물건 태그 칩 목록 (옷사기, 기타) */}
+              {/* 물건 태그 칩 목록 */}
               <div className="flex flex-wrap gap-1.5 pt-0.5">
                 {shoppingTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        setMemo(isSelected ? '' : tag);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
-                        isSelected
-                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-rose-200/70 hover:bg-rose-50/80'
-                      }`}
-                    >
-                      {tag}
-                    </button>
+                    <div key={tag} className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemo(isSelected ? '' : tag);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
+                          isSelected
+                            ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-rose-200/70 hover:bg-rose-50/80'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                      {isManageMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`'${tag}' 항목을 삭제하시겠습니까?`)) {
+                              handleDeleteShoppingTag(tag);
+                            }
+                          }}
+                          className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition"
+                          title="삭제"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -599,16 +719,30 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                   <span>🏠</span>
                   <span>고정비 구분 (터치하여 선택)</span>
                 </span>
-                {!isAddingTag && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setIsAddingTag(true)}
-                    className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    onClick={() => setIsManageMode(!isManageMode)}
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                      isManageMode
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border-emerald-200/80'
+                    }`}
                   >
-                    <Plus size={11} />
-                    <span>새 구분 만들기</span>
+                    <Settings2 size={11} />
+                    <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
-                )}
+                  {!isAddingTag && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingTag(true)}
+                      className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-white border border-emerald-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    >
+                      <Plus size={11} />
+                      <span>새 구분</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* 새 태그 직접 만들기 폼 */}
@@ -650,20 +784,35 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {fixedTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        setMemo(tag);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
-                        isSelected
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-emerald-200/70 hover:bg-emerald-50/80'
-                      }`}
-                    >
-                      {tag}
-                    </button>
+                    <div key={tag} className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemo(tag);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
+                          isSelected
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-emerald-200/70 hover:bg-emerald-50/80'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                      {isManageMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`'${tag}' 항목을 삭제하시겠습니까?`)) {
+                              handleDeleteTag(tag);
+                            }
+                          }}
+                          className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition"
+                          title="삭제"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -678,16 +827,30 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                   <span>💼</span>
                   <span>사업비 세부 항목 (터치하여 선택)</span>
                 </span>
-                {!isAddingBusinessTag && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => setIsAddingBusinessTag(true)}
-                    className="text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-white border border-blue-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    onClick={() => setIsManageMode(!isManageMode)}
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg transition border flex items-center gap-0.5 ${
+                      isManageMode
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-slate-600 hover:text-slate-900 border-blue-200/80'
+                    }`}
                   >
-                    <Plus size={11} />
-                    <span>새 항목 만들기</span>
+                    <Settings2 size={11} />
+                    <span>{isManageMode ? '완료' : '항목 정리'}</span>
                   </button>
-                )}
+                  {!isAddingBusinessTag && (
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingBusinessTag(true)}
+                      className="text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-white border border-blue-200/80 px-2 py-0.5 rounded-lg transition shadow-xs flex items-center gap-0.5"
+                    >
+                      <Plus size={11} />
+                      <span>새 항목</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* 새 사업비 구분 직접 만들기 폼 */}
@@ -695,7 +858,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 <div className="flex gap-1.5 pt-1">
                   <input
                     type="text"
-                    placeholder="새 항목 이름 (예: 서버비, 식대, 비품)"
+                    placeholder="새 항목 이름 (예: 광고(인스타), 광고(네이버))"
                     value={newBusinessTagInput}
                     onChange={(e) => setNewBusinessTagInput(e.target.value)}
                     className="flex-1 bg-white border border-blue-300 rounded-xl px-2.5 py-1 text-xs text-slate-800 outline-none focus:border-blue-500"
@@ -729,20 +892,35 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({ isOpen, onClose, onS
                 {businessTags.map((tag) => {
                   const isSelected = memo === tag;
                   return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => {
-                        setMemo(isSelected ? '' : tag);
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
-                        isSelected
-                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
-                          : 'bg-white text-slate-700 border-blue-200/70 hover:bg-blue-50/80'
-                      }`}
-                    >
-                      {tag}
-                    </button>
+                    <div key={tag} className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMemo(isSelected ? '' : tag);
+                        }}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition border active:scale-95 ${
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                            : 'bg-white text-slate-700 border-blue-200/70 hover:bg-blue-50/80'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                      {isManageMode && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm(`'${tag}' 항목을 삭제하시겠습니까?`)) {
+                              handleDeleteBusinessTag(tag);
+                            }
+                          }}
+                          className="p-1 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 transition"
+                          title="삭제"
+                        >
+                          <Trash2 size={11} />
+                        </button>
+                      )}
+                    </div>
                   );
                 })}
               </div>

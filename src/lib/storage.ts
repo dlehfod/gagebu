@@ -474,8 +474,15 @@ export const storageService = {
     localStorage.setItem(STORAGE_KEYS.MONTHLY_SAVINGS, JSON.stringify(updated));
   },
 
-  // === 고정비 구분 태그 (사용자 직접 생성/삭제) ===
+  // === 고정비 구분 태그 ===
   async getFixedTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.FIXED_TAGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return Array.from(new Set(parsed));
+      }
+    } catch {}
     localStorage.setItem(STORAGE_KEYS.FIXED_TAGS, JSON.stringify(DEFAULT_FIXED_TAGS));
     return DEFAULT_FIXED_TAGS;
   },
@@ -496,8 +503,24 @@ export const storageService = {
     return updated;
   },
 
+  async updateFixedTag(oldTag: string, newTag: string): Promise<string[]> {
+    const current = await this.getFixedTags();
+    const cleanNew = newTag.trim();
+    if (!cleanNew) return current;
+    const updated = current.map(t => (t === oldTag ? cleanNew : t));
+    localStorage.setItem(STORAGE_KEYS.FIXED_TAGS, JSON.stringify(Array.from(new Set(updated))));
+    return updated;
+  },
+
   // === 사업비 구분 태그 ===
   async getBusinessTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.BUSINESS_TAGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return Array.from(new Set(parsed));
+      }
+    } catch {}
     localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(DEFAULT_BUSINESS_TAGS));
     return DEFAULT_BUSINESS_TAGS;
   },
@@ -518,8 +541,24 @@ export const storageService = {
     return updated;
   },
 
+  async updateBusinessTag(oldTag: string, newTag: string): Promise<string[]> {
+    const current = await this.getBusinessTags();
+    const cleanNew = newTag.trim();
+    if (!cleanNew) return current;
+    const updated = current.map(t => (t === oldTag ? cleanNew : t));
+    localStorage.setItem(STORAGE_KEYS.BUSINESS_TAGS, JSON.stringify(Array.from(new Set(updated))));
+    return updated;
+  },
+
   // === 생활필수 구분 태그 ===
   async getFoodTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.FOOD_TAGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return Array.from(new Set(parsed));
+      }
+    } catch {}
     localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(DEFAULT_FOOD_TAGS));
     return DEFAULT_FOOD_TAGS;
   },
@@ -540,8 +579,24 @@ export const storageService = {
     return updated;
   },
 
+  async updateFoodTag(oldTag: string, newTag: string): Promise<string[]> {
+    const current = await this.getFoodTags();
+    const cleanNew = newTag.trim();
+    if (!cleanNew) return current;
+    const updated = current.map(t => (t === oldTag ? cleanNew : t));
+    localStorage.setItem(STORAGE_KEYS.FOOD_TAGS, JSON.stringify(Array.from(new Set(updated))));
+    return updated;
+  },
+
   // === 나쁜짓 구분 태그 ===
   async getEntertainmentTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.ENTERTAINMENT_TAGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return Array.from(new Set(parsed));
+      }
+    } catch {}
     localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(DEFAULT_ENTERTAINMENT_TAGS));
     return DEFAULT_ENTERTAINMENT_TAGS;
   },
@@ -562,8 +617,24 @@ export const storageService = {
     return updated;
   },
 
+  async updateEntertainmentTag(oldTag: string, newTag: string): Promise<string[]> {
+    const current = await this.getEntertainmentTags();
+    const cleanNew = newTag.trim();
+    if (!cleanNew) return current;
+    const updated = current.map(t => (t === oldTag ? cleanNew : t));
+    localStorage.setItem(STORAGE_KEYS.ENTERTAINMENT_TAGS, JSON.stringify(Array.from(new Set(updated))));
+    return updated;
+  },
+
   // === 물건 구분 태그 ===
   async getShoppingTags(): Promise<string[]> {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.SHOPPING_TAGS);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) return Array.from(new Set(parsed));
+      }
+    } catch {}
     localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(DEFAULT_SHOPPING_TAGS));
     return DEFAULT_SHOPPING_TAGS;
   },
@@ -581,6 +652,15 @@ export const storageService = {
     const current = await this.getShoppingTags();
     const updated = current.filter(t => t !== tag);
     localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(updated));
+    return updated;
+  },
+
+  async updateShoppingTag(oldTag: string, newTag: string): Promise<string[]> {
+    const current = await this.getShoppingTags();
+    const cleanNew = newTag.trim();
+    if (!cleanNew) return current;
+    const updated = current.map(t => (t === oldTag ? cleanNew : t));
+    localStorage.setItem(STORAGE_KEYS.SHOPPING_TAGS, JSON.stringify(Array.from(new Set(updated))));
     return updated;
   }
 };
