@@ -72,6 +72,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // 내역 수정 모달 상태
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<any | null>(null);
 
+  // 특정 카테고리 세부항목(태그) 요약 모달 상태
+  const [selectedCategoryDetail, setSelectedCategoryDetail] = useState<string | null>(null);
+
   // 과거 내역 접기/펼치기 상태 (기본: 접힘)
   const [isPastHistoryOpen, setIsPastHistoryOpen] = useState(false);
 
@@ -181,6 +184,44 @@ export const Dashboard: React.FC<DashboardProps> = ({
       percent,
     };
   });
+
+  // 선택된 카테고리의 이번 달 세부항목별(태그별) 요약 집계
+  const selectedCatDetailInfo = selectedCategoryDetail ? CATEGORIES[selectedCategoryDetail as keyof typeof CATEGORIES] : null;
+  const selectedCatExpenses = selectedCategoryDetail
+    ? targetMonthExpenses.filter(e => e.category === selectedCategoryDetail)
+    : [];
+
+  const catTagMap: Record<string, { amount: number; count: number }> = {};
+  selectedCatExpenses.forEach(e => {
+    const tag = (e.memo && e.memo.trim()) ? e.memo.trim() : '미지정 / 기타';
+    if (!catTagMap[tag]) {
+      catTagMap[tag] = { amount: 0, count: 0 };
+    }
+    catTagMap[tag].amount += e.amount;
+    catTagMap[tag].count += 1;
+  });
+
+  // 고정비 카테고리일 경우 납부 완료된 고정비도 세부항목으로 집계에 포함
+  if (selectedCategoryDetail === 'fixed' && isCurrentMonth) {
+    paidFixedList.forEach(f => {
+      const tag = f.name;
+      if (!catTagMap[tag]) {
+        catTagMap[tag] = { amount: 0, count: 0 };
+      }
+      catTagMap[tag].amount += f.amount;
+      catTagMap[tag].count += 1;
+    });
+  }
+
+  const selectedCatTotalAmount = selectedCategoryDetail ? (monthCategoryTotals[selectedCategoryDetail] || 0) : 0;
+  const catTagBreakdown = Object.entries(catTagMap)
+    .sort(([, a], [, b]) => b.amount - a.amount)
+    .map(([tag, data]) => ({
+      tag,
+      amount: data.amount,
+      count: data.count,
+      percent: selectedCatTotalAmount > 0 ? Math.round((data.amount / selectedCatTotalAmount) * 100) : 0,
+    }));
 
   // 5. 날짜별 내역 (오늘 포함 선택된 달의 기록)
   const pastHistory = [
@@ -966,15 +1007,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
             return (
               <div
                 key={key}
-                onClick={() => onOpenExpense(key as any)}
+                onClick={() => {
+                  if (hasSpent) {
+                    setSelectedCategoryDetail(key);
+                  } else {
+                    onOpenExpense(key as any);
+                  }
+                }}
                 className={`relative overflow-hidden p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
                   isExcluded
                     ? 'bg-slate-100/60 border-dashed border-slate-200 opacity-50 grayscale hover:opacity-80'
                     : hasSpent
-                    ? 'bg-slate-50/90 border-slate-200/80'
+                    ? 'bg-slate-50/90 border-slate-200/80 shadow-2xs hover:shadow-xs hover:bg-emerald-50/20'
                     : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
                 }`}
-                title={isExcluded ? '생활비 계산에서 제외되는 항목 (클릭 시 이 카테고리로 지출 입력)' : '클릭 시 이 카테고리로 지출 입력'}
+                title={hasSpent ? '클릭 시 세부 항목 요약 보기' : '클릭 시 이 카테고리로 지출 입력'}
               >
                 {isExcluded && (
                   <X
@@ -1012,6 +1059,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   >
                     {amount.toLocaleString()}원
                   </span>
+                  {hasSpent && (
+                    <div className="text-[9.5px] text-emerald-600 font-bold mt-0.5 flex items-center justify-end gap-0.5">
+                      <span>세부 항목 보기</span>
+                      <ChevronRight size={10} />
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1612,6 +1665,111 @@ export const Dashboard: React.FC<DashboardProps> = ({
             setSelectedHistoryItem(null);
           }}
         />
+      )}
+
+      {/* 모달 4: 카테고리별 세부 항목(태그) 요약 모달 */}
+      {selectedCategoryDetail && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setSelectedCategoryDetail(null)}
+        >
+          <div 
+            className="bg-white rounded-3xl p-5 md:p-6 w-full max-w-sm shadow-xl border border-slate-200/80 space-y-4 animate-in zoom-in-95 duration-150 max-h-[85vh] flex flex-col"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* 모달 헤더 */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{selectedCatDetailInfo?.emoji || '🏷️'}</span>
+                <div>
+                  <h3 className="text-base font-black text-slate-900">
+                    {selectedCatDetailInfo?.label || selectedCategoryDetail} 세부 항목 요약
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedMonthLabel} 지출 분석
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedCategoryDetail(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* 총 금액 요약 */}
+            <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/60 flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-600">이번 달 총 지출</span>
+              <span className="text-base sm:text-lg font-black text-slate-900 tabular-nums">
+                {selectedCatTotalAmount.toLocaleString()}원
+              </span>
+            </div>
+
+            {/* 세부 항목 요약 리스트 */}
+            <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
+              <div className="text-[11px] font-bold text-slate-400 flex items-center justify-between">
+                <span>항목별 사용 금액 ({catTagBreakdown.length}개)</span>
+                <span>비율</span>
+              </div>
+
+              {catTagBreakdown.length === 0 ? (
+                <div className="py-8 text-center text-xs text-slate-400 bg-slate-50 rounded-2xl border border-slate-100">
+                  이번 달 세부 지출 항목이 없습니다.
+                </div>
+              ) : (
+                catTagBreakdown.map((item, idx) => (
+                  <div key={item.tag} className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/60 transition space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-bold">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="w-5 h-5 rounded-full bg-white border border-slate-200 text-[10px] text-slate-500 font-extrabold flex items-center justify-center shrink-0">
+                          {idx + 1}
+                        </span>
+                        <span className="text-slate-800 truncate">{item.tag}</span>
+                        <span className="text-[10px] text-slate-400 font-normal">({item.count}건)</span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="text-slate-900 font-black tabular-nums">{item.amount.toLocaleString()}원</span>
+                        <span className="text-[10px] text-slate-400 ml-1 font-semibold">({item.percent}%)</span>
+                      </div>
+                    </div>
+                    {/* 게이지바 */}
+                    <div className="h-1.5 w-full bg-slate-200/70 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                        style={{ width: `${item.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* 하단 버튼 영역 */}
+            <div className="pt-2 grid grid-cols-2 gap-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  const cat = selectedCategoryDetail;
+                  setSelectedCategoryDetail(null);
+                  onOpenExpense(cat as any);
+                }}
+                className="h-11 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+              >
+                <Plus size={14} />
+                <span>지출 추가</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedCategoryDetail(null)}
+                className="h-11 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs transition"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
