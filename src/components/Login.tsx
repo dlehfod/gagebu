@@ -3,7 +3,14 @@ import { supabase } from '../lib/supabase';
 
 // 본인 전용 로그인 화면 (Supabase Auth 이메일 + 비밀번호)
 export const Login: React.FC = () => {
-  const [email, setEmail] = useState('');
+  // 마지막으로 로그인한 이메일을 이 기기에 기억 (코드에 이메일을 적지 않음)
+  const [email, setEmail] = useState(() => {
+    try {
+      return localStorage.getItem('app_login_email') || '';
+    } catch {
+      return '';
+    }
+  });
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -14,7 +21,15 @@ export const Login: React.FC = () => {
     setLoading(true);
     setError('');
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    if (signInError) setError('이메일 또는 비밀번호가 맞지 않아요.');
+    if (signInError) {
+      setError('이메일 또는 비밀번호가 맞지 않아요.');
+    } else {
+      try {
+        localStorage.setItem('app_login_email', email.trim());
+      } catch {
+        // 저장 실패해도 로그인은 그대로 진행
+      }
+    }
     setLoading(false);
   };
 
