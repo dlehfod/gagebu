@@ -221,7 +221,10 @@ export const storageService = {
 
   async updateSettings(settings: Settings): Promise<void> {
     if (isSupabaseConfigured && supabase) {
-      await supabase.from('settings').upsert(settings);
+      // 로그인한 본인 계정으로 저장 (RLS: user_id = auth.uid())
+      const { data: authData } = await supabase.auth.getUser();
+      const uid = authData.user?.id;
+      await supabase.from('settings').upsert(uid ? { ...settings, user_id: uid } : settings);
       return;
     }
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));

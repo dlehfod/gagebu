@@ -8,9 +8,28 @@ import { SettingsModal } from './components/SettingsModal';
 import { Advice } from './components/Advice';
 import { ExpenseModal } from './components/ExpenseModal';
 import { IncomeModal } from './components/IncomeModal';
+import { Login } from './components/Login';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
+import type { Session } from '@supabase/supabase-js';
 import { Home, ReceiptText, Landmark, Sparkles, Settings as SettingsIcon } from 'lucide-react';
 
 export function App() {
+  // 로그인 세션 (Supabase 사용 시 로그인해야 데이터 접근)
+  const [session, setSession] = useState<Session | null>(null);
+  const [authChecked, setAuthChecked] = useState(!isSupabaseConfigured);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
   const [activeTab, setActiveTab] = useState<'home' | 'history' | 'assets' | 'advice' | 'settings'>('home');
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -94,9 +113,11 @@ export function App() {
     }
   };
 
+  const sessionUserId = session?.user?.id;
   useEffect(() => {
+    if (isSupabaseConfigured && !sessionUserId) return;
     loadData();
-  }, []);
+  }, [sessionUserId]);
 
   // 기본 지출 통장 찾기 (지정된 기본 통장 우선, 없으면 첫 번째 자산 통장)
   const getDefaultAsset = (currentAssets: Asset[]) => {
@@ -364,6 +385,13 @@ export function App() {
     currentNetWorth = latestAdjustment.actual_net_worth + (incomeSince - expenseSince);
   }
 
+  if (!authChecked) {
+    return <div className="min-h-screen bg-[#F8F9FA]" />;
+  }
+  if (isSupabaseConfigured && !session) {
+    return <Login />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#191F28] font-sans flex justify-center selection:bg-emerald-400 selection:text-white">
       {/* PC: 최대 1000px 가운데 정렬 / 모바일: 전체 폭 */}
@@ -502,6 +530,18 @@ export function App() {
               onSave={handleSaveSettings}
               onRefreshData={loadData}
             />
+          )}
+
+          {activeTab === 'settings' && supabase && (
+            <div className="flex justify-center pt-2 pb-28">
+              <button
+                type="button"
+                onClick={() => supabase?.auth.signOut()}
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600 underline underline-offset-4"
+              >
+                로그아웃
+              </button>
+            </div>
           )}
         </main>
 
