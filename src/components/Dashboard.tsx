@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { getLocalDateString, type Income, type Expense, type Asset, type Settings, type FixedExpense, CATEGORIES } from '../types';
+import React, { useState, useEffect } from 'react';
+import { getLocalDateString, type Income, type Expense, type Asset, type Settings, type FixedExpense, type MonthlySaving, CATEGORIES } from '../types';
+import { storageService } from '../lib/storage';
 import { 
   Plus, 
   Minus,
@@ -147,6 +148,28 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // 선택된 달 남은 용돈 (100만원 - 쓴 생활비)
   const remainingAllowance = monthlyAllowanceLimit - monthUsedAllowance;
+  // 화면에 보여줄 한도 문구 (설정값과 연동, 예: 250만)
+  const limitLabel = `${Math.round(monthlyAllowanceLimit / 10000).toLocaleString()}만`;
+
+  // === 이번 달 저축 (실제로 옮긴 돈 기록) ===
+  const [monthlySavings, setMonthlySavings] = useState<MonthlySaving[]>([]);
+  const [savingInput, setSavingInput] = useState('');
+
+  useEffect(() => {
+    storageService.getMonthlySavings().then(setMonthlySavings).catch(() => setMonthlySavings([]));
+  }, []);
+
+  const monthSaved = monthlySavings.find(s => s.month === selectedMonth)?.amount || 0;
+  const monthSavingGoal = settings.monthly_saving_goal || 0;
+  const savingPercent = monthSavingGoal > 0 ? Math.min(Math.round((monthSaved / monthSavingGoal) * 100), 100) : 0;
+
+  const persistMonthSaving = async (newTotal: number) => {
+    const saved = await storageService.saveMonthlySaving(selectedMonth, Math.max(newTotal, 0));
+    setMonthlySavings(prev => [saved, ...prev.filter(s => s.month !== selectedMonth)]);
+    setSavingInput('');
+  };
+
+  const parsedSavingInput = Number(savingInput.replace(/[^0-9]/g, '')) || 0;
 
   // 에너지바 사용률(%) 계산
   const rawPercent = Math.round((monthUsedAllowance / monthlyAllowanceLimit) * 100);
@@ -464,6 +487,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
     if (savingGoal > 0) {
       txt += `  • 월 목표 저축액: ${savingGoal.toLocaleString()}원\n`;
     }
+    const currentMonthSaved = monthlySavings.find(s => s.month === currentMonthStr)?.amount || 0;
+    txt += `  • 이번 달 실제 저축(옮긴 돈): ${currentMonthSaved.toLocaleString()}원\n`;
     txt += `  • 리포트 추출 기준일: ${getLocalDateString()}\n\n`;
 
     txt += `■ [2. 현재 자산 및 부채 현황]\n`;
@@ -722,7 +747,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-[10px] sm:text-xs font-bold text-slate-500 ml-0.5">원</span>
             </div>
             <div className="text-[10px] text-slate-400 mt-0.5">
-              100만 한도
+              {limitLabel} 한도
             </div>
           </div>
         </div>
@@ -755,6 +780,61 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="text-xs sm:text-sm font-bold ml-0.5">원</span>
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* 이번 달 저축 (실제로 다른 계좌로 옮긴 돈) */}
+        <div className="mt-3 p-3.5 sm:p-4 rounded-2xl bg-sky-50/70 border border-sky-200">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs sm:text-sm font-black text-slate-900">
+              🏦 {isCurrentMonth ? '이번 달' : `${sMonth}월`} 저축
+            </span>
+            <span className="text-[11px] text-slate-500 font-medium tabular-nums">
+              {monthSavingGoal > 0 ? `목표 ${monthSavingGoal.toLocaleString()}원 · ${savingPercent}%` : '목표 미설정'}
+            </span>
+          </div>
+          <div className="mt-1.5 text-xl sm:text-2xl font-black text-sky-700 tabular-nums">
+            {monthSaved.toLocaleString()}
+            <span className="text-xs sm:text-sm font-bold ml-0.5">원</span>
+          </div>
+          {monthSavingGoal > 0 && (
+            <div className="mt-2 h-2 rounded-full bg-sky-100 overflow-hidden">
+              <div className="h-full bg-sky-500 rounded-full transition-all" style={{ width: `${savingPercent}%` }} />
+            </div>
+          )}
+
+          {isCurrentMonth && todayNetProfit > 0 && (
+            <div className="mt-2.5 text-[11px] sm:text-xs text-slate-600">
+              💡 오늘 순수익 {todayNetProfit.toLocaleString()}원 → <span className="font-black text-sky-700">{Math.round(todayNetProfit * 0.5).toLocaleString()}원</span> 옮기기 (50%)
+            </div>
+          )}
+
+          <div className="mt-2.5 flex items-center gap-2">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={savingInput}
+              onChange={e => setSavingInput(e.target.value)}
+              placeholder="옮긴 금액"
+              className="flex-1 min-w-0 bg-white border border-sky-200 rounded-xl px-3 py-2 text-sm tabular-nums focus:outline-none focus:ring-2 focus:ring-sky-300"
+            />
+            <button
+              type="button"
+              disabled={parsedSavingInput <= 0}
+              onClick={() => persistMonthSaving(monthSaved + parsedSavingInput)}
+              className="shrink-0 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-40 active:scale-95 px-3 py-2 rounded-xl transition"
+            >
+              + 추가
+            </button>
+            <button
+              type="button"
+              disabled={savingInput.trim() === ''}
+              onClick={() => persistMonthSaving(parsedSavingInput)}
+              className="shrink-0 text-[11px] font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-40 px-1.5 py-2 transition"
+              title="입력한 금액으로 이번 달 저축 합계를 바꿉니다"
+            >
+              합계 수정
+            </button>
           </div>
         </div>
       </div>
@@ -1095,7 +1175,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {/* 우측: 남은 생활 용돈 */}
             <div className="text-right">
               <span className="text-[11px] font-semibold text-slate-500 block">
-                남은 생활비 <span className="text-[10px] font-normal text-slate-400">(한도 100만)</span>
+                남은 생활비 <span className="text-[10px] font-normal text-slate-400">(한도 {limitLabel})</span>
               </span>
               <div className="flex items-baseline justify-end gap-0.5 mt-0.5">
                 <span className={`text-xl sm:text-2xl font-black tabular-nums ${remainingAllowance >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
