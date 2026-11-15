@@ -1560,7 +1560,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                         {isExpanded && (
                           <div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-slate-200/60 bg-white/70">
                             {catItems.map((item) => {
-                              const itemCatInfo = item.category ? CATEGORIES[item.category as keyof typeof CATEGORIES] : null;
+                              const itemCatInfo = item.isExpense && 'category' in item && item.category
+                                ? CATEGORIES[item.category as keyof typeof CATEGORIES]
+                                : null;
                               return (
                                 <div
                                   key={item.id}
