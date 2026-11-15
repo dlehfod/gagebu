@@ -78,6 +78,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
   // 과거 내역 접기/펼치기 상태 (기본: 접힘)
   const [isPastHistoryOpen, setIsPastHistoryOpen] = useState(false);
+  // 과거 내역 카테고리별 상세내역 펼침 상태
+  const [expandedPastCategories, setExpandedPastCategories] = useState<Record<string, boolean>>({});
 
 
   // 날짜 계산 (오늘 및 선택된 달 기준)
@@ -1507,32 +1509,116 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {categorySummaryList.map((cat) => (
-                    <div
-                      key={cat.key}
-                      className="flex items-center justify-between p-3 px-4 rounded-2xl bg-slate-50 hover:bg-slate-100/80 border border-slate-200/70 transition"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-lg shrink-0">{cat.emoji}</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-slate-800">
-                            {cat.label}
-                          </span>
-                          <span className="text-xs text-slate-400 font-medium">
-                            ({cat.count}건)
-                          </span>
-                        </div>
-                      </div>
+                  {categorySummaryList.map((cat) => {
+                    const isExpanded = Boolean(expandedPastCategories[cat.key]);
+                    const catItems = cat.key === 'income'
+                      ? selectedDateIncomes
+                      : selectedDateExpenses.filter(e => (e.category === ('other' as any) ? 'entertainment' : e.category) === cat.key);
 
-                      <span
-                        className={`text-sm md:text-base font-extrabold tabular-nums ${
-                          cat.isExpense ? 'text-slate-800' : 'text-emerald-600'
-                        }`}
+                    return (
+                      <div
+                        key={cat.key}
+                        className="rounded-2xl bg-slate-50 border border-slate-200/70 overflow-hidden transition"
                       >
-                        {cat.isExpense ? `-${cat.amount.toLocaleString()}원` : `+${cat.amount.toLocaleString()}원`}
-                      </span>
-                    </div>
-                  ))}
+                        {/* 큰 범주 헤더 (누르면 세부 상세내역 열기/닫기) */}
+                        <div
+                          onClick={() => {
+                            setExpandedPastCategories(prev => ({
+                              ...prev,
+                              [cat.key]: !prev[cat.key]
+                            }));
+                          }}
+                          className="flex items-center justify-between p-3 px-4 hover:bg-slate-100/80 cursor-pointer select-none transition"
+                        >
+                          <div className="flex items-center gap-3 min-w-0">
+                            <span className="text-lg shrink-0">{cat.emoji}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-slate-800">
+                                {cat.label}
+                              </span>
+                              <span className="text-xs text-slate-400 font-medium">
+                                ({cat.count}건)
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span
+                              className={`text-sm md:text-base font-extrabold tabular-nums ${
+                                cat.isExpense ? 'text-slate-800' : 'text-emerald-600'
+                              }`}
+                            >
+                              {cat.isExpense ? `-${cat.amount.toLocaleString()}원` : `+${cat.amount.toLocaleString()}원`}
+                            </span>
+                            <span className="text-slate-400 p-0.5">
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 누르면 펼쳐지는 개별 상세 내역 목록 */}
+                        {isExpanded && (
+                          <div className="px-3 pb-3 pt-1 space-y-1.5 border-t border-slate-200/60 bg-white/70">
+                            {catItems.map((item) => {
+                              const itemCatInfo = item.category ? CATEGORIES[item.category as keyof typeof CATEGORIES] : null;
+                              return (
+                                <div
+                                  key={item.id}
+                                  className="flex items-center justify-between p-2.5 px-3 rounded-xl bg-white border border-slate-200/80 shadow-2xs transition"
+                                >
+                                  <div className="min-w-0 flex items-center gap-2">
+                                    <span className="text-xs text-slate-400">└</span>
+                                    <div className="min-w-0">
+                                      <span className="text-xs md:text-sm font-bold text-slate-800 truncate block">
+                                        {item.memo || (item.isExpense ? (itemCatInfo?.label || '지출') : '수입')}
+                                      </span>
+                                      <span className="text-[10px] text-slate-400">
+                                        {item.isExpense ? (itemCatInfo?.label || '기타 지출') : '수입'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span
+                                      className={`text-xs md:text-sm font-extrabold tabular-nums ${
+                                        item.isExpense ? 'text-slate-800' : 'text-emerald-600'
+                                      }`}
+                                    >
+                                      {item.isExpense ? `-${item.amount.toLocaleString()}원` : `+${item.amount.toLocaleString()}원`}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedHistoryItem(item);
+                                      }}
+                                      className="text-slate-400 hover:text-slate-600 p-1 rounded transition"
+                                      title="수정"
+                                    >
+                                      <Edit2 size={12} />
+                                    </button>
+                                    {onDeleteItem && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDeleteItem(item.id, item.isExpense);
+                                        }}
+                                        className="text-slate-300 hover:text-rose-500 p-1 rounded transition"
+                                        title="삭제"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
