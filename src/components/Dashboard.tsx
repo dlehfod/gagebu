@@ -135,17 +135,18 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const paidFixedTotal = paidFixedList.reduce((sum, f) => sum + f.amount, 0);
   const pendingFixedTotal = pendingFixedList.reduce((sum, f) => sum + f.amount, 0);
 
-  // 4. 선택된 달의 쓸 용돈 (고정비, 사업비 제외한 순수 생활 용돈 한도 100만원)
+  // 4. 선택된 달의 지출 한도 (설정값, 기본 100만원)
   const monthlyAllowanceLimit = settings.monthly_discretionary_limit || 1000000;
 
-  // 선택된 달에 사용한 순수 생활 용돈 (고정비, 사업비 제외)
+  // 선택된 달의 전체 지출 (사업비, 고정비, 생활비 등 모든 지출 포함)
   const targetMonthExpenses = expenses.filter(e => e.date.startsWith(selectedMonth) && !e.is_pending);
-  const monthUsedAllowance = targetMonthExpenses
-    .filter(e => e.category !== 'fixed' && e.category !== 'business')
-    .reduce((sum, e) => sum + e.amount, 0);
 
-  // 선택된 달 남은 용돈 (100만원 - 쓴 생활비)
-  const remainingAllowance = monthlyAllowanceLimit - monthUsedAllowance;
+  // 이번 달 총 지출 (실제 지출 + 낸 고정비 모두 합산하여 지출에 포함)
+  const targetMonthTotalExpense = targetMonthExpenses.reduce((sum, e) => sum + e.amount, 0) + (isCurrentMonth ? paidFixedTotal : 0);
+  const monthUsedAllowance = targetMonthTotalExpense;
+
+  // 선택된 달 남은 예산 (한도 - 이번달 총지출)
+  const remainingAllowance = monthlyAllowanceLimit - targetMonthTotalExpense;
   // 화면에 보여줄 한도 문구 (설정값과 연동, 예: 250만)
   const limitLabel = `${Math.round(monthlyAllowanceLimit / 10000).toLocaleString()}만`;
 
@@ -165,9 +166,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       : rawPercent >= 75 
       ? 'from-amber-400 to-orange-500' 
       : 'from-emerald-400 to-teal-500';
-
-  // 이번 달 총 지출 (실제 지출 + 낸 고정비 합산)
-  const targetMonthTotalExpense = targetMonthExpenses.reduce((sum, e) => sum + e.amount, 0) + (isCurrentMonth ? paidFixedTotal : 0);
 
   // 이번 달 카테고리별 지출 집계
   const monthCategoryTotals: Record<string, number> = {};
@@ -683,15 +681,15 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <span className="text-[10px] sm:text-xs font-bold text-rose-600 ml-0.5">원</span>
             </div>
             <div className="text-[10px] text-slate-400 mt-0.5">
-              고정비 포함
+              사업·고정비 포함
             </div>
           </div>
 
-          {/* 3. 남은 생활비 */}
+          {/* 3. 남은 예산 */}
           <div className="px-1.5 sm:px-3">
             <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs font-bold text-slate-500 mb-1">
               <span>💳</span>
-              <span>남은 생활비</span>
+              <span>남은 예산</span>
             </div>
             <div className={`text-sm sm:text-base md:text-lg font-black tabular-nums truncate ${remainingAllowance >= 0 ? 'text-slate-900' : 'text-rose-500'}`}>
               {remainingAllowance >= 0 ? remainingAllowance.toLocaleString() : `-${Math.abs(remainingAllowance).toLocaleString()}`}
@@ -1020,31 +1018,31 @@ export const Dashboard: React.FC<DashboardProps> = ({
           })}
         </div>
 
-        {/* 하단 심플 요약: 총지출 & 남은 생활비 + 슬림 게이지바 */}
+        {/* 하단 심플 요약: 총지출 & 남은 예산 + 슬림 게이지바 */}
         <div className="pt-3.5 border-t border-slate-100 space-y-3">
           <div className="flex items-center justify-between">
-            {/* 좌측: 생활비 지출 (사업비·고정비 제외) */}
+            {/* 좌측: 이번달 총지출 (사업비·고정비 모두 포함) */}
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-semibold text-slate-500">
-                  {isCurrentMonth ? '이번달' : `${sMonth}월`} 생활비 지출
+                  {isCurrentMonth ? '이번달' : `${sMonth}월`} 총지출
                 </span>
                 <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md font-medium">
-                  사업·고정비 제외
+                  사업·고정비 포함
                 </span>
               </div>
               <div className="flex items-baseline gap-0.5 mt-0.5">
                 <span className="text-xl sm:text-2xl font-black tabular-nums text-rose-500">
-                  {monthUsedAllowance > 0 ? `-${monthUsedAllowance.toLocaleString()}` : '0'}
+                  {targetMonthTotalExpense > 0 ? `-${targetMonthTotalExpense.toLocaleString()}` : '0'}
                 </span>
                 <span className="text-xs font-bold text-slate-400">원</span>
               </div>
             </div>
 
-            {/* 우측: 남은 생활 용돈 */}
+            {/* 우측: 남은 예산 */}
             <div className="text-right">
               <span className="text-[11px] font-semibold text-slate-500 block">
-                남은 생활비 <span className="text-[10px] font-normal text-slate-400">(한도 {limitLabel})</span>
+                남은 예산 <span className="text-[10px] font-normal text-slate-400">(한도 {limitLabel})</span>
               </span>
               <div className="flex items-baseline justify-end gap-0.5 mt-0.5">
                 <span className={`text-xl sm:text-2xl font-black tabular-nums ${remainingAllowance >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
