@@ -256,6 +256,28 @@ export function App() {
     await loadData();
   };
 
+  const handleUpdateFixedExpense = async (id: string, updates: Partial<FixedExpense>) => {
+    const strId = String(id);
+    const targetFixed = fixedExpenses.find(f => String(f.id) === strId);
+
+    // 이미 납부 완료된 상태에서 금액을 수정하면 전재산 차액 자동 반영
+    if (targetFixed && updates.amount !== undefined && paidFixedIds.map(String).includes(strId)) {
+      const diff = updates.amount - targetFixed.amount;
+      if (diff !== 0) {
+        const targetAsset = getDefaultAsset(assets);
+        if (targetAsset) {
+          const nextAmount = targetAsset.amount - diff;
+          setAssets(prev => prev.map(a => a.id === targetAsset.id ? { ...a, amount: nextAmount } : a));
+          await storageService.updateAsset(targetAsset.id, { amount: nextAmount });
+        }
+      }
+    }
+
+    await storageService.updateFixedExpense(strId, updates);
+    const updated = await storageService.getFixedExpenses();
+    setFixedExpenses(updated);
+  };
+
   const handleDeleteFixedExpense = async (id: string) => {
     const strId = String(id);
 
@@ -465,6 +487,7 @@ export function App() {
               paidFixedIds={paidFixedIds}
               onToggleFixedPaid={handleToggleFixedPaid}
               onAddFixedExpense={handleAddFixedExpense}
+              onUpdateFixedExpense={handleUpdateFixedExpense}
               onDeleteFixedExpense={handleDeleteFixedExpense}
               onDirectUpdateNetWorth={handleDirectUpdateNetWorth}
               onOpenExpense={(cat?: any, targetDate?: string) => {

@@ -28,6 +28,7 @@ interface DashboardProps {
   paidFixedIds: string[];
   onToggleFixedPaid: (id: string, willBePaid: boolean) => void;
   onAddFixedExpense?: (item: Omit<FixedExpense, 'id' | 'created_at'>) => void;
+  onUpdateFixedExpense?: (id: string, updates: Partial<FixedExpense>) => void;
   onDeleteFixedExpense?: (id: string) => void;
   onDirectUpdateNetWorth: (newAmount: number) => void;
   onOpenExpense: (category?: any, date?: string) => void;
@@ -47,6 +48,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
   paidFixedIds,
   onToggleFixedPaid,
   onAddFixedExpense,
+  onUpdateFixedExpense,
   onDeleteFixedExpense,
   onDirectUpdateNetWorth,
   onOpenExpense,
@@ -65,6 +67,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [fixedName, setFixedName] = useState('');
   const [fixedAmount, setFixedAmount] = useState('');
   const [fixedDay, setFixedDay] = useState('10');
+
+  // 고정비 수정 모달 상태
+  const [editingFixedExpense, setEditingFixedExpense] = useState<FixedExpense | null>(null);
+  const [editFixedName, setEditFixedName] = useState('');
+  const [editFixedAmount, setEditFixedAmount] = useState('');
+  const [editFixedDay, setEditFixedDay] = useState('10');
 
   // 내역 수정 모달 상태
   const [selectedHistoryItem, setSelectedHistoryItem] = useState<any | null>(null);
@@ -356,6 +364,22 @@ export const Dashboard: React.FC<DashboardProps> = ({
       setFixedAmount('');
       setFixedDay('10');
       setIsAddFixedOpen(false);
+    }
+  };
+
+  // 고정비 수정 저장 (폰요금 등 매달 바뀌는 금액 즉시 수정 지원)
+  const handleSaveEditFixed = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFixedExpense) return;
+    const amountNum = parseInt(editFixedAmount.replace(/,/g, ''), 10);
+    const dayNum = parseInt(editFixedDay, 10) || 1;
+    if (editFixedName.trim() && !isNaN(amountNum) && amountNum > 0) {
+      onUpdateFixedExpense?.(editingFixedExpense.id, {
+        name: editFixedName.trim(),
+        amount: amountNum,
+        payment_day: dayNum,
+      });
+      setEditingFixedExpense(null);
     }
   };
 
@@ -1150,10 +1174,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-xs md:text-sm font-black text-slate-900 tabular-nums">
                       {item.amount.toLocaleString()}원
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingFixedExpense(item);
+                        setEditFixedName(item.name);
+                        setEditFixedAmount(String(item.amount));
+                        setEditFixedDay(String(item.payment_day || 10));
+                      }}
+                      className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200/60 transition shrink-0"
+                      title="금액/이름 수정"
+                    >
+                      <Edit2 size={15} />
+                    </button>
                     {onDeleteFixedExpense && (
                       <button
                         type="button"
@@ -1161,10 +1199,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           e.stopPropagation();
                           onDeleteFixedExpense(item.id);
                         }}
-                        className="text-slate-400 hover:text-rose-600 active:text-rose-700 p-2 rounded-lg hover:bg-rose-50 active:bg-rose-100 transition shrink-0 ml-0.5"
+                        className="text-slate-400 hover:text-rose-600 active:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 active:bg-rose-100 transition shrink-0"
                         title="고정비 삭제"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     )}
                   </div>
@@ -1193,10 +1231,24 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     </div>
                   </button>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-xs md:text-sm font-bold text-slate-400 tabular-nums line-through">
                       {item.amount.toLocaleString()}원
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingFixedExpense(item);
+                        setEditFixedName(item.name);
+                        setEditFixedAmount(String(item.amount));
+                        setEditFixedDay(String(item.payment_day || 10));
+                      }}
+                      className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-200/60 transition shrink-0"
+                      title="실제 납부 금액 수정"
+                    >
+                      <Edit2 size={15} />
+                    </button>
                     <button
                       onClick={() => onToggleFixedPaid(item.id, false)}
                       className="text-[11px] font-semibold text-slate-400 hover:text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-lg transition"
@@ -1210,10 +1262,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                           e.stopPropagation();
                           onDeleteFixedExpense(item.id);
                         }}
-                        className="text-slate-400 hover:text-rose-600 active:text-rose-700 p-2 rounded-lg hover:bg-rose-50 active:bg-rose-100 transition shrink-0 ml-0.5"
+                        className="text-slate-400 hover:text-rose-600 active:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50 active:bg-rose-100 transition shrink-0"
                         title="고정비 삭제"
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={15} />
                       </button>
                     )}
                   </div>
@@ -1624,6 +1676,95 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   className="h-11 rounded-xl bg-emerald-600 text-white font-bold text-xs transition hover:bg-emerald-700 shadow-sm"
                 >
                   추가하기
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 모달 2-1: 고정비 금액/내용 수정 모달 (폰요금 등 매달 바뀌는 금액 수정 지원) */}
+      {editingFixedExpense && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
+                <span>✏️ 고정비 금액·정보 수정</span>
+              </h4>
+              <button onClick={() => setEditingFixedExpense(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveEditFixed} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  고정비 이름
+                </label>
+                <input
+                  type="text"
+                  value={editFixedName}
+                  onChange={e => setEditFixedName(e.target.value)}
+                  placeholder="예: 통신비 (휴대폰 요금)"
+                  className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-slate-600">
+                    이번 달 납부 금액
+                  </label>
+                  <span className="text-[11px] text-emerald-600 font-medium">
+                    (매달 청구 요금에 맞춰 변경)
+                  </span>
+                </div>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={editFixedAmount}
+                    onChange={e => setEditFixedAmount(e.target.value)}
+                    placeholder="예: 74300"
+                    className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                    autoFocus
+                    required
+                  />
+                  <span className="absolute right-3.5 top-3 text-xs text-slate-400">원</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  매달 결제일 (1일 ~ 31일)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    value={editFixedDay}
+                    onChange={e => setEditFixedDay(e.target.value)}
+                    placeholder="10"
+                    className="w-full h-11 px-3.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
+                    required
+                  />
+                  <span className="absolute right-3.5 top-3 text-xs text-slate-400">일</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingFixedExpense(null)}
+                  className="h-11 rounded-xl bg-slate-100 text-slate-600 font-semibold text-xs transition hover:bg-slate-200"
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-emerald-600 text-white font-bold text-xs transition hover:bg-emerald-700 shadow-sm"
+                >
+                  저장하기
                 </button>
               </div>
             </form>
