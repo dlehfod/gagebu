@@ -149,12 +149,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
   // 선택된 달의 전체 지출 (사업비, 고정비, 생활비 등 모든 지출 포함)
   const targetMonthExpenses = expenses.filter(e => e.date.startsWith(selectedMonth) && !e.is_pending);
 
-  // 이번 달 총 지출 (실제 지출 + 낸 고정비 모두 합산하여 지출에 포함)
+  // 이번 달 전체 총 지출 (실제 지출 + 낸 고정비 모두 합산: 전체 지출 및 총순수익 계산용)
   const targetMonthTotalExpense = targetMonthExpenses.reduce((sum, e) => sum + e.amount, 0) + (isCurrentMonth ? paidFixedTotal : 0);
-  const monthUsedAllowance = targetMonthTotalExpense;
 
-  // 선택된 달 남은 예산 (한도 - 이번달 총지출)
-  const remainingAllowance = monthlyAllowanceLimit - targetMonthTotalExpense;
+  // 순수 생활비 지출 (사업비, 고정비 제외한 생활비)
+  const monthUsedAllowance = targetMonthExpenses
+    .filter(e => e.category !== 'fixed' && e.category !== 'business')
+    .reduce((sum, e) => sum + e.amount, 0);
+
+  // 선택된 달 남은 생활비 (100만원 한도 - 쓴 생활비)
+  const remainingAllowance = monthlyAllowanceLimit - monthUsedAllowance;
   // 화면에 보여줄 한도 문구 (설정값과 연동, 예: 250만)
   const limitLabel = `${Math.round(monthlyAllowanceLimit / 10000).toLocaleString()}만`;
 
@@ -709,11 +713,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
-          {/* 3. 남은 예산 */}
+          {/* 3. 남은 생활비 */}
           <div className="px-1.5 sm:px-3">
             <div className="flex items-center justify-center gap-1 text-[11px] sm:text-xs font-bold text-slate-500 mb-1">
               <span>💳</span>
-              <span>남은 예산</span>
+              <span>남은 생활비</span>
             </div>
             <div className={`text-sm sm:text-base md:text-lg font-black tabular-nums truncate ${remainingAllowance >= 0 ? 'text-slate-900' : 'text-rose-500'}`}>
               {remainingAllowance >= 0 ? remainingAllowance.toLocaleString() : `-${Math.abs(remainingAllowance).toLocaleString()}`}
@@ -990,83 +994,147 @@ export const Dashboard: React.FC<DashboardProps> = ({
           )}
         </div>
 
-        {/* 카테고리별 그리드 카드 (사업비, 식비, 물건 등) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {monthCategoryList.map(({ key, label, emoji, amount, percent }) => {
-            const hasSpent = amount > 0;
-            return (
-              <div
-                key={key}
-                onClick={() => {
-                  if (hasSpent) {
-                    setSelectedCategoryDetail(key);
-                  } else {
-                    onOpenExpense(key as any);
-                  }
-                }}
-                className={`relative overflow-hidden p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
-                  hasSpent
-                    ? 'bg-slate-50/90 border-slate-200/80 shadow-2xs hover:shadow-xs hover:bg-emerald-50/20'
-                    : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
-                }`}
-                title={hasSpent ? '클릭 시 세부 항목 요약 보기' : '클릭 시 이 카테고리로 지출 입력'}
-              >
-                <div className="relative flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-base">{emoji}</span>
-                    <span className="text-xs font-bold text-slate-700">{label}</span>
-                  </div>
-                  {hasSpent && (
-                    <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
-                      {percent}%
-                    </span>
-                  )}
-                </div>
-                <div className="relative mt-2 text-right">
-                  <span
-                    className={`text-xs sm:text-sm font-black tabular-nums ${
-                      hasSpent ? 'text-slate-900' : 'text-slate-300'
+        {/* 카테고리별 그리드: 생활비 지출 & (선 긋고) 생활비 외 지출 분리 */}
+        <div className="space-y-3">
+          {/* 1) 생활비 카테고리 (식비, 물건, 나쁜짓 등) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {monthCategoryList
+              .filter(c => c.key !== 'business' && c.key !== 'fixed')
+              .map(({ key, label, emoji, amount, percent }) => {
+                const hasSpent = amount > 0;
+                return (
+                  <div
+                    key={key}
+                    onClick={() => {
+                      if (hasSpent) {
+                        setSelectedCategoryDetail(key);
+                      } else {
+                        onOpenExpense(key as any);
+                      }
+                    }}
+                    className={`relative overflow-hidden p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
+                      hasSpent
+                        ? 'bg-slate-50/90 border-slate-200/80 shadow-2xs hover:shadow-xs hover:bg-emerald-50/20'
+                        : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
                     }`}
+                    title={hasSpent ? '클릭 시 세부 항목 요약 보기' : '클릭 시 이 카테고리로 지출 입력'}
                   >
-                    {amount.toLocaleString()}원
-                  </span>
-                  {hasSpent && (
-                    <div className="text-[9.5px] text-emerald-600 font-bold mt-0.5 flex items-center justify-end gap-0.5">
-                      <span>세부 항목 보기</span>
-                      <ChevronRight size={10} />
+                    <div className="relative flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">{emoji}</span>
+                        <span className="text-xs font-bold text-slate-700">{label}</span>
+                      </div>
+                      {hasSpent && (
+                        <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
+                          {percent}%
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                    <div className="relative mt-2 text-right">
+                      <span
+                        className={`text-xs sm:text-sm font-black tabular-nums ${
+                          hasSpent ? 'text-slate-900' : 'text-slate-300'
+                        }`}
+                      >
+                        {amount.toLocaleString()}원
+                      </span>
+                      {hasSpent && (
+                        <div className="text-[9.5px] text-emerald-600 font-bold mt-0.5 flex items-center justify-end gap-0.5">
+                          <span>세부 항목 보기</span>
+                          <ChevronRight size={10} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* 2) 선 하나 긋고 밑에 따로 또렷하게 표시되는 생활비 외 지출 (사업비, 고정비) */}
+          <div className="pt-3 border-t border-slate-200">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-2 px-0.5">
+              <span>💼 🏠 생활비 외 지출 (사업비 · 고정비)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {monthCategoryList
+                .filter(c => c.key === 'business' || c.key === 'fixed')
+                .map(({ key, label, emoji, amount, percent }) => {
+                  const hasSpent = amount > 0;
+                  return (
+                    <div
+                      key={key}
+                      onClick={() => {
+                        if (hasSpent) {
+                          setSelectedCategoryDetail(key);
+                        } else {
+                          onOpenExpense(key as any);
+                        }
+                      }}
+                      className={`relative overflow-hidden p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
+                        hasSpent
+                          ? 'bg-slate-50/90 border-slate-200/80 shadow-2xs hover:shadow-xs hover:bg-emerald-50/20'
+                          : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
+                      }`}
+                      title={hasSpent ? '클릭 시 세부 항목 요약 보기' : '클릭 시 이 카테고리로 지출 입력'}
+                    >
+                      <div className="relative flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-base">{emoji}</span>
+                          <span className="text-xs font-bold text-slate-700">{label}</span>
+                        </div>
+                        {hasSpent && (
+                          <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
+                            {percent}%
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative mt-2 text-right">
+                        <span
+                          className={`text-xs sm:text-sm font-black tabular-nums ${
+                            hasSpent ? 'text-slate-900' : 'text-slate-300'
+                          }`}
+                        >
+                          {amount.toLocaleString()}원
+                        </span>
+                        {hasSpent && (
+                          <div className="text-[9.5px] text-emerald-600 font-bold mt-0.5 flex items-center justify-end gap-0.5">
+                            <span>세부 항목 보기</span>
+                            <ChevronRight size={10} />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
         </div>
 
-        {/* 하단 심플 요약: 총지출 & 남은 예산 + 슬림 게이지바 */}
+        {/* 하단 심플 요약: 생활비 지출 & 남은 생활비 + 슬림 게이지바 */}
         <div className="pt-3.5 border-t border-slate-100 space-y-3">
           <div className="flex items-center justify-between">
-            {/* 좌측: 이번달 총지출 (사업비·고정비 모두 포함) */}
+            {/* 좌측: 생활비 지출 (사업비·고정비 제외) */}
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-semibold text-slate-500">
-                  {isCurrentMonth ? '이번달' : `${sMonth}월`} 총지출
+                  {isCurrentMonth ? '이번달' : `${sMonth}월`} 생활비 지출
                 </span>
                 <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded-md font-medium">
-                  사업·고정비 포함
+                  사업·고정비 제외
                 </span>
               </div>
               <div className="flex items-baseline gap-0.5 mt-0.5">
                 <span className="text-xl sm:text-2xl font-black tabular-nums text-rose-500">
-                  {targetMonthTotalExpense > 0 ? `-${targetMonthTotalExpense.toLocaleString()}` : '0'}
+                  {monthUsedAllowance > 0 ? `-${monthUsedAllowance.toLocaleString()}` : '0'}
                 </span>
                 <span className="text-xs font-bold text-slate-400">원</span>
               </div>
             </div>
 
-            {/* 우측: 남은 예산 */}
+            {/* 우측: 남은 생활비 */}
             <div className="text-right">
               <span className="text-[11px] font-semibold text-slate-500 block">
-                남은 예산 <span className="text-[10px] font-normal text-slate-400">(한도 {limitLabel})</span>
+                남은 생활비 <span className="text-[10px] font-normal text-slate-400">(한도 {limitLabel})</span>
               </span>
               <div className="flex items-baseline justify-end gap-0.5 mt-0.5">
                 <span className={`text-xl sm:text-2xl font-black tabular-nums ${remainingAllowance >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}>
