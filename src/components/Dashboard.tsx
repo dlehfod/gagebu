@@ -54,12 +54,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   onNavigateHistory,
   onUpdateItem,
   onDeleteItem,
-  onUpdateSettings,
+  onUpdateSettings: _onUpdateSettings,
 }) => {
-  // 목표 수정 모달 상태
-  const [isGoalEditOpen, setIsGoalEditOpen] = useState(false);
-  const [editGoalText, setEditGoalText] = useState(settings.financial_goal || '총자산 1억 모으기');
-
   // 전재산 수정 모달 상태
   const [isAssetEditOpen, setIsAssetEditOpen] = useState(false);
   const [editAssetAmount, setEditAssetAmount] = useState('');
@@ -343,19 +339,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
       onDirectUpdateNetWorth(parsed);
       setIsAssetEditOpen(false);
     }
-  };
-
-  // 내 목표 수정 저장
-  const handleSaveGoal = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = editGoalText.trim();
-    if (trimmed && onUpdateSettings) {
-      onUpdateSettings({
-        ...settings,
-        financial_goal: trimmed,
-      });
-    }
-    setIsGoalEditOpen(false);
   };
 
   // 새 고정비 추가 저장
@@ -668,27 +651,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
             {netWorth.toLocaleString()}
           </span>
           <span className="ml-1.5 text-lg md:text-xl font-medium text-emerald-200">원</span>
-        </div>
-
-        {/* 내 목표 표시 및 수정 (클릭 시 직접 변경 가능) */}
-        <div className="mt-4 pt-3 border-t border-emerald-500/40 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-sm">🎯</span>
-            <span className="text-emerald-100 font-medium shrink-0">내 목표:</span>
-            <span className="font-extrabold text-white truncate">
-              {settings.financial_goal || '총자산 1억 모으기'}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setEditGoalText(settings.financial_goal || '총자산 1억 모으기');
-              setIsGoalEditOpen(true);
-            }}
-            className="text-[11px] bg-white/15 hover:bg-white/25 active:scale-95 px-2.5 py-1 rounded-lg text-emerald-100 hover:text-white font-semibold transition shrink-0 ml-2"
-          >
-            목표 변경
-          </button>
         </div>
       </section>
 
@@ -1008,16 +970,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
         {/* 카테고리별 그리드 카드 (사업비, 식비, 물건 등) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-          {[...monthCategoryList]
-            .sort((a, b) => {
-              const aEx = a.key === 'business' || a.key === 'fixed' ? 1 : 0;
-              const bEx = b.key === 'business' || b.key === 'fixed' ? 1 : 0;
-              return aEx - bEx;
-            })
-            .map(({ key, label, emoji, amount, percent }) => {
+          {monthCategoryList.map(({ key, label, emoji, amount, percent }) => {
             const hasSpent = amount > 0;
-            // 사업비·고정비는 생활비(용돈 한도) 계산에서 제외되는 항목
-            const isExcluded = key === 'business' || key === 'fixed';
             return (
               <div
                 key={key}
@@ -1029,46 +983,27 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   }
                 }}
                 className={`relative overflow-hidden p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
-                  isExcluded
-                    ? 'bg-slate-100/60 border-dashed border-slate-200 opacity-50 grayscale hover:opacity-80'
-                    : hasSpent
+                  hasSpent
                     ? 'bg-slate-50/90 border-slate-200/80 shadow-2xs hover:shadow-xs hover:bg-emerald-50/20'
                     : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
                 }`}
                 title={hasSpent ? '클릭 시 세부 항목 요약 보기' : '클릭 시 이 카테고리로 지출 입력'}
               >
-                {isExcluded && (
-                  <X
-                    size={64}
-                    strokeWidth={1.5}
-                    className="absolute -right-2 -bottom-3 text-slate-300/60 pointer-events-none"
-                  />
-                )}
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="text-base">{emoji}</span>
                     <span className="text-xs font-bold text-slate-700">{label}</span>
                   </div>
-                  {isExcluded ? (
-                    <span className="text-[9px] font-semibold text-slate-400 bg-white/80 border border-slate-200 px-1.5 py-0.5 rounded-md">
-                      제외
+                  {hasSpent && (
+                    <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
+                      {percent}%
                     </span>
-                  ) : (
-                    hasSpent && (
-                      <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
-                        {percent}%
-                      </span>
-                    )
                   )}
                 </div>
                 <div className="relative mt-2 text-right">
                   <span
                     className={`text-xs sm:text-sm font-black tabular-nums ${
-                      isExcluded
-                        ? 'text-slate-400 line-through decoration-slate-300'
-                        : hasSpent
-                        ? 'text-slate-900'
-                        : 'text-slate-300'
+                      hasSpent ? 'text-slate-900' : 'text-slate-300'
                     }`}
                   >
                     {amount.toLocaleString()}원
@@ -1559,58 +1494,6 @@ export const Dashboard: React.FC<DashboardProps> = ({
           </div>
         )}
       </section>
-
-
-
-      {/* 모달 0: 내 목표 수정 모달 */}
-      {isGoalEditOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl border border-slate-100">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-                <span>🎯 나의 재무 목표 설정</span>
-              </h4>
-              <button onClick={() => setIsGoalEditOpen(false)} className="text-slate-400 hover:text-slate-600 p-1">
-                <X size={18} />
-              </button>
-            </div>
-            <form onSubmit={handleSaveGoal} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
-                  이루고 싶은 핵심 목표 (자유롭게 입력)
-                </label>
-                <input
-                  type="text"
-                  value={editGoalText}
-                  onChange={e => setEditGoalText(e.target.value)}
-                  placeholder="예: 총자산 1억 모으기"
-                  className="w-full h-12 px-4 rounded-xl border border-slate-200 text-sm font-bold text-slate-900 focus:outline-none focus:border-emerald-500"
-                  autoFocus
-                  required
-                />
-                <p className="text-[11px] text-slate-400 mt-1">
-                  이 목표는 가계부 메인에 표시되며, AI 조언 시 핵심 목표로 자동 인식됩니다.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsGoalEditOpen(false)}
-                  className="h-11 rounded-xl bg-slate-100 text-slate-600 font-semibold text-xs transition hover:bg-slate-200"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="h-11 rounded-xl bg-emerald-600 text-white font-bold text-xs transition hover:bg-emerald-700 shadow-sm"
-                >
-                  목표 저장
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* 모달 1: 전재산 수정 모달 */}
       {isAssetEditOpen && (
