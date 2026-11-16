@@ -1050,62 +1050,72 @@ export const Dashboard: React.FC<DashboardProps> = ({
               })}
           </div>
 
-          {/* 2) 선 하나 긋고 밑에 따로 또렷하게 표시되는 생활비 외 지출 (사업비, 고정비) */}
-          <div className="pt-3 border-t border-slate-200">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 mb-2 px-0.5">
-              <span>💼 🏠 생활비 외 지출 (사업비 · 고정비)</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2.5">
-              {monthCategoryList
-                .filter(c => c.key === 'business' || c.key === 'fixed')
-                .map(({ key, label, emoji, amount, percent }) => {
-                  const hasSpent = amount > 0;
-                  return (
-                    <div
-                      key={key}
-                      onClick={() => {
-                        if (hasSpent) {
-                          setSelectedCategoryDetail(key);
-                        } else {
-                          onOpenExpense(key as any);
-                        }
-                      }}
-                      className={`relative overflow-hidden p-3 rounded-2xl border transition cursor-pointer flex flex-col justify-between hover:border-emerald-400 active:scale-[0.99] ${
-                        hasSpent
-                          ? 'bg-slate-50/90 border-slate-200/80 shadow-2xs hover:shadow-xs hover:bg-emerald-50/20'
-                          : 'bg-white border-slate-100 opacity-60 hover:opacity-100'
-                      }`}
-                      title={hasSpent ? '클릭 시 세부 항목 요약 보기' : '클릭 시 이 카테고리로 지출 입력'}
-                    >
-                      <div className="relative flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-base">{emoji}</span>
-                          <span className="text-xs font-bold text-slate-700">{label}</span>
-                        </div>
-                        {hasSpent && (
-                          <span className="text-[10px] font-semibold text-slate-400 tabular-nums">
-                            {percent}%
-                          </span>
-                        )}
-                      </div>
-                      <div className="relative mt-2 text-right">
-                        <span
-                          className={`text-xs sm:text-sm font-black tabular-nums ${
-                            hasSpent ? 'text-slate-900' : 'text-slate-300'
-                          }`}
-                        >
-                          {amount.toLocaleString()}원
-                        </span>
-                        {hasSpent && (
-                          <div className="text-[9.5px] text-emerald-600 font-bold mt-0.5 flex items-center justify-end gap-0.5">
-                            <span>세부 항목 보기</span>
-                            <ChevronRight size={10} />
+          {/* 2) 선 하나 긋고 밑에 따로 구분되는 생활비 외 지출 (사업비, 고정비) - 덜 부각되고 차분한 서브 스타일 */}
+          <div className="pt-2.5 border-t border-slate-200/80">
+            <div className="p-2.5 sm:p-3 rounded-2xl bg-slate-50/70 border border-slate-200/70 space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-400 px-0.5">
+                <span className="flex items-center gap-1">
+                  <span>💼 🏠</span>
+                  <span>생활비 외 별도 지출 (사업비 · 고정비)</span>
+                </span>
+                <span className="text-[10px] text-slate-400">생활비 한도 미포함</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {monthCategoryList
+                  .filter(c => c.key === 'business' || c.key === 'fixed')
+                  .map(({ key, label, emoji, amount, percent }) => {
+                    const hasSpent = amount > 0;
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => {
+                          if (hasSpent) {
+                            setSelectedCategoryDetail(key);
+                          } else {
+                            onOpenExpense(key as any);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border transition cursor-pointer flex items-center justify-between hover:border-slate-300 active:scale-[0.99] ${
+                          hasSpent
+                            ? 'bg-white border-slate-200/80 shadow-2xs hover:bg-slate-50'
+                            : 'bg-white/60 border-slate-200/40 opacity-60 hover:opacity-100'
+                        }`}
+                        title={hasSpent ? '클릭 시 세부 항목 요약 보기' : '클릭 시 이 카테고리로 지출 입력'}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="text-sm shrink-0">{emoji}</span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-slate-600 block truncate">
+                              {label}
+                            </span>
+                            {hasSpent && (
+                              <span className="text-[10px] text-slate-400 tabular-nums">
+                                {percent}%
+                              </span>
+                            )}
                           </div>
-                        )}
+                        </div>
+
+                        <div className="text-right shrink-0 pl-1">
+                          <span
+                            className={`text-xs sm:text-sm font-extrabold tabular-nums block ${
+                              hasSpent ? 'text-slate-700' : 'text-slate-300'
+                            }`}
+                          >
+                            {amount.toLocaleString()}원
+                          </span>
+                          {hasSpent && (
+                            <span className="text-[9px] text-slate-400 hover:text-emerald-600 font-semibold flex items-center justify-end gap-0.5">
+                              <span>세부보기</span>
+                              <ChevronRight size={9} />
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+              </div>
             </div>
           </div>
         </div>
